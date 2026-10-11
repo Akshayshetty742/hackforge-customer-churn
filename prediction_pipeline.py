@@ -181,6 +181,8 @@ SAVED_BENCHMARK_METRICS: Dict[str, Any] = {
     "test_precision": 0.5292,
     "test_recall": 0.7513,
     "test_f1": 0.6210,
+    "test_specificity": 0.7585,
+    "test_roc_auc": 0.8412,
     "confusion_matrix": [[785, 250], [93, 281]],
     "test_samples": 1409,
     "majority_minority_ratio": 2.77,

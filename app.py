@@ -196,6 +196,20 @@ for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choic
         st.session_state[_key] = st.session_state[_key]
 
 
+def confusion_matrix_takeaways(cm) -> str:
+    """Markdown bullet list explaining each confusion matrix cell."""
+    cells = pp.confusion_matrix_breakdown(cm)
+    tp, fn = cells["true_positives"], cells["false_negatives"]
+    miss_rate = fn / (tp + fn) if (tp + fn) else 0.0
+    return (
+        f"- **True Positives ({tp:,}):** At-risk customers correctly targeted for retention campaigns.\n"
+        f"- **False Negatives ({fn:,}):** Churners missed by the model (~{miss_rate:.1%} miss rate).\n"
+        f"- **False Positives ({cells['false_positives']:,}):** Non-churning customers offered incentives "
+        "(tolerable trade-off for retention).\n"
+        f"- **True Negatives ({cells['true_negatives']:,}):** Loyal customers correctly identified."
+    )
+
+
 # ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
 # ---------------------------------------------------------
@@ -419,12 +433,17 @@ elif nav_choice == "Model Evaluation":
     tab_saved, tab_live = st.tabs(["Saved Verified Metrics", "Run Live Verification"])
 
     with tab_saved:
-        st.subheader("Holdout Test Set Performance (N = 1,409)")
+        saved = pp.SAVED_BENCHMARK_METRICS
+        st.subheader(f"Holdout Test Set Performance (N = {saved['test_samples']:,})")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Accuracy", "75.7%", help="Overall correct predictions across both classes")
-        m2.metric("Recall (Churn)", "75.1%", help="Identifies ~75% of all actual churning customers")
-        m3.metric("Precision (Churn)", "52.9%", help="Proportion of predicted churners who actually left")
-        m4.metric("F1-Score (Churn)", "0.621", help="Harmonic mean of precision and recall")
+        m1.metric("Accuracy", f"{saved['test_accuracy']:.1%}", help="Overall correct predictions across both classes")
+        m2.metric("Recall (Churn)", f"{saved['test_recall']:.1%}", help="Share of actual churners the model catches")
+        m3.metric("Precision (Churn)", f"{saved['test_precision']:.1%}", help="Proportion of predicted churners who actually left")
+        m4.metric("F1-Score (Churn)", f"{saved['test_f1']:.3f}", help="Harmonic mean of precision and recall")
+
+        m5, m6, _, _ = st.columns(4)
+        m5.metric("Specificity (Stay)", f"{saved['test_specificity']:.1%}", help="Share of loyal customers correctly predicted to stay")
+        m6.metric("ROC-AUC", f"{saved['test_roc_auc']:.3f}", help="How well the churn probability ranks churners above loyal customers (0.5 = random)")
 
         st.divider()
 
@@ -432,23 +451,11 @@ elif nav_choice == "Model Evaluation":
 
         with c_mat_col:
             st.write("**Confusion Matrix:**")
-            cm_df = pd.DataFrame(
-                [[785, 250], [93, 281]],
-                columns=["Pred: Stay", "Pred: Churn"],
-                index=["Actual: Stay", "Actual: Churn"],
-            )
-            st.dataframe(cm_df, use_container_width=True)
+            st.dataframe(pp.confusion_matrix_frame(saved["confusion_matrix"]), use_container_width=True)
 
         with c_summary_col:
             st.write("**Key Takeaways:**")
-            st.markdown(
-                """
-                - **True Positives (281):** At-risk customers correctly targeted for retention campaigns.
-                - **False Negatives (93):** Churners missed by the model (~24.9% miss rate).
-                - **False Positives (250):** Non-churning customers offered incentives (tolerable trade-off for retention).
-                - **True Negatives (785):** Loyal customers correctly identified.
-                """
-            )
+            st.markdown(confusion_matrix_takeaways(saved["confusion_matrix"]))
 
     with tab_live:
         st.subheader("Live Benchmark Runner")
