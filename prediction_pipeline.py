@@ -256,27 +256,56 @@ def preprocess_input(
     return df[feature_names]
 
 
+def get_risk_tier(prob_churn: float) -> str:
+    """Classifies churn probability into business operational risk tiers.
+
+    Note on Risk Bands:
+        - Low Risk (< 35%): Customer account indicates stable retention.
+        - Moderate Risk (35% to 65%): Customer displays emerging churn warning signs.
+        - High Risk (> 65%): Customer is at severe risk of cancellation.
+
+    Disclaimer:
+        These risk category tiers are heuristics designed for business workflow
+        segmentation and retention intervention priority, not statistically validated cutoffs.
+    """
+    if prob_churn > 0.65:
+        return "High"
+    elif prob_churn >= 0.35:
+        return "Moderate"
+    else:
+        return "Low"
+
+
 def predict_churn(
     model: Any,
     processed_df: pd.DataFrame,
-) -> Tuple[int, float, Dict[str, float]]:
-    """Runs prediction on preprocessed dataframe.
+    threshold: float = 0.50,
+) -> Tuple[int, float, Dict[str, float], str]:
+    """Runs prediction on preprocessed dataframe with configurable decision threshold.
+
+    Args:
+        model: Trained model artifact supporting predict or predict_proba.
+        processed_df: Preprocessed feature DataFrame with exact model feature order.
+        threshold: Classification decision threshold for churn (default 0.50).
 
     Returns:
-        (predicted_class, churn_probability, probabilities_dict)
+        (predicted_class, churn_probability, probabilities_dict, risk_tier)
     """
-    prediction = int(model.predict(processed_df)[0])
-
     if hasattr(model, "predict_proba"):
         probs = model.predict_proba(processed_df)[0]
         prob_churn = float(probs[1]) if len(probs) > 1 else float(probs[0])
         prob_stay = float(probs[0]) if len(probs) > 1 else 1.0 - prob_churn
     else:
-        prob_churn = 1.0 if prediction == 1 else 0.0
+        raw_pred = int(model.predict(processed_df)[0])
+        prob_churn = 1.0 if raw_pred == 1 else 0.0
         prob_stay = 1.0 - prob_churn
 
+    # Determine predicted class based on configurable decision threshold
+    prediction = 1 if prob_churn >= threshold else 0
     prob_dict = {"Stay": prob_stay, "Churn": prob_churn}
-    return prediction, prob_churn, prob_dict
+    risk_tier = get_risk_tier(prob_churn)
+
+    return prediction, prob_churn, prob_dict, risk_tier
 
 
 def evaluate_model_on_dataset(
