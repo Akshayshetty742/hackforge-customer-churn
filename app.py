@@ -103,6 +103,13 @@ def load_preset(name: str) -> None:
     st.session_state["loaded_preset"] = name
 
 
+def clear_form() -> None:
+    """Button callback: empty every field so a customer can be typed in from scratch."""
+    for col in pp.EXPECTED_FEATURE_COLUMNS:
+        st.session_state[field_key(col)] = None
+    st.session_state["loaded_preset"] = None
+
+
 def current_form_values() -> dict:
     return {col: st.session_state.get(field_key(col)) for col in pp.EXPECTED_FEATURE_COLUMNS}
 
@@ -137,6 +144,7 @@ def category_select(col: str) -> None:
         pp.FIELD_LABELS[col],
         options=pp.VALID_CATEGORIES[col],
         help=FIELD_HELP[col],
+        placeholder="Select an option...",
         key=field_key(col),
     )
 
@@ -212,7 +220,7 @@ if nav_choice == "Customer Churn Prediction":
         )
     else:
         st.subheader("Start from a sample customer")
-        preset_col, button_col = st.columns([3, 1], vertical_alignment="bottom")
+        preset_col, button_col, clear_col = st.columns([3, 1, 1], vertical_alignment="bottom")
         with preset_col:
             chosen_preset = st.selectbox(
                 "Sample customer preset",
@@ -226,6 +234,13 @@ if nav_choice == "Customer Churn Prediction":
                 use_container_width=True,
                 on_click=load_preset,
                 args=(chosen_preset,),
+            )
+        with clear_col:
+            st.button(
+                "Clear form",
+                use_container_width=True,
+                on_click=clear_form,
+                help="Empty all fields to enter a new customer manually.",
             )
         st.caption(cp.CUSTOMER_PRESETS[chosen_preset]["description"])
         if st.session_state.get("loaded_preset"):
@@ -242,6 +257,7 @@ if nav_choice == "Customer Churn Prediction":
                     options=[0, 1],
                     format_func=lambda x: "Yes" if x == 1 else "No",
                     help=FIELD_HELP["SeniorCitizen"],
+                    placeholder="Select an option...",
                     key=field_key("SeniorCitizen"),
                 )
             with c3:
