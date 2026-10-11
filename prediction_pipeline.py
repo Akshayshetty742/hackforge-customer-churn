@@ -248,33 +248,27 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
             )
 
     # Numerical validations
-    try:
-        tenure = _to_number(data["tenure"])
-        if tenure < 0 or tenure > 120:
-            errors.append("Tenure must be between 0 and 120 months.")
-    except (ValueError, TypeError):
-        errors.append(f"Tenure must be a valid number, got {data['tenure']!r}.")
+    numbers: Dict[str, float] = {}
+    for col, (low, high) in NUMERIC_RANGES.items():
+        try:
+            numbers[col] = _to_number(data[col])
+        except (ValueError, TypeError):
+            errors.append(f"{col} must be a valid number, got {data[col]!r}.")
+            continue
 
-    try:
-        monthly = _to_number(data["MonthlyCharges"])
-        if monthly < 0 or monthly > 500:
-            errors.append("MonthlyCharges must be between $0.00 and $500.00.")
-    except (ValueError, TypeError):
-        errors.append(f"MonthlyCharges must be a valid number, got {data['MonthlyCharges']!r}.")
+        if col == "SeniorCitizen":
+            if numbers[col] not in (0, 1):
+                errors.append("SeniorCitizen must be either 0 (No) or 1 (Yes).")
+            continue
 
-    try:
-        total = _to_number(data["TotalCharges"])
-        if total < 0 or total > 50000:
-            errors.append("TotalCharges must be between $0.00 and $50,000.00.")
-    except (ValueError, TypeError):
-        errors.append(f"TotalCharges must be a valid number, got {data['TotalCharges']!r}.")
-
-    try:
-        senior = _to_number(data["SeniorCitizen"])
-        if senior not in (0, 1):
-            errors.append("SeniorCitizen must be either 0 (No) or 1 (Yes).")
-    except (ValueError, TypeError):
-        errors.append(f"SeniorCitizen must be 0 or 1, got {data['SeniorCitizen']!r}.")
+        if not low <= numbers[col] <= high:
+            if col == "tenure":
+                errors.append(f"Tenure must be between {low} and {high} months.")
+            else:
+                errors.append(f"{col} must be between ${low:,.2f} and ${high:,.2f}.")
+        elif col == "tenure" and not float(numbers[col]).is_integer():
+            # preprocess_input casts tenure to int, so 12.7 would silently become 12
+            errors.append("Tenure must be a whole number of months.")
 
     # Consistency checks: PhoneService
     if data.get("PhoneService") == "No":
