@@ -28,4 +28,4 @@ jobs:
 
       - name: Run automated tests
         run: |
-          pytest test_pipeline.py -v
+          pytest -v
