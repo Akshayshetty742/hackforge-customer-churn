@@ -188,6 +188,13 @@ def numeric_input(col: str, step: float) -> None:
 if field_key("gender") not in st.session_state:
     load_preset(cp.DEFAULT_PRESET)
 
+# Streamlit deletes a widget's state when the widget is not drawn on a run (e.g. while
+# the user is on the "Model Evaluation" page). Re-assigning the keys every run keeps
+# the form values when the user comes back to the prediction page.
+for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choice", "auto_total_charges"]:
+    if _key in st.session_state:
+        st.session_state[_key] = st.session_state[_key]
+
 
 # ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
