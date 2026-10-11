@@ -444,12 +444,12 @@ if nav_choice == "Customer Churn Prediction":
                     with res_col1:
                         if pred_class == 1:
                             st.markdown(
-                                "<div class='churn-pill-high'>⚠️ PREDICTED TO CHURN (At Risk)</div>",
+                                "<div class='churn-pill-high'>⚠️ HIGH RISK — PREDICTED TO CHURN</div>",
                                 unsafe_allow_html=True,
                             )
                         else:
                             st.markdown(
-                                "<div class='churn-pill-low'>✅ PREDICTED TO STAY (Retained)</div>",
+                                "<div class='churn-pill-low'>✅ LOW RISK — PREDICTED TO STAY</div>",
                                 unsafe_allow_html=True,
                             )
 
