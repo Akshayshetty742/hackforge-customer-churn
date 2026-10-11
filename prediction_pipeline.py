@@ -546,17 +546,26 @@ def evaluate_model_on_dataset(
     encoder_path: str = DEFAULT_ENCODER_FILE,
     test_size: float = 0.2,
     random_state: int = 42,
+    threshold: float = 0.5,
 ) -> Dict[str, Any]:
     """Runs a live evaluation of the saved model on the dataset test split.
 
     Uses the exact stratified test split protocol without retraining the model.
+    A customer is predicted to churn when P(churn) >= threshold (0.5 = model default).
     """
+    if not 0 < threshold < 1:
+        raise ValueError(f"threshold must be between 0 and 1, got {threshold}.")
+
     model, feature_names, encoders = load_artifacts(model_path, encoder_path)
     df = load_dataset(dataset_path)
     X_test, y_test = get_holdout_split(df, encoders, feature_names, test_size, random_state)
 
-    y_pred = model.predict(X_test)
-    y_prob = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
+    if hasattr(model, "predict_proba"):
+        y_prob = model.predict_proba(X_test)[:, 1]
+        y_pred = (y_prob >= threshold).astype(int)
+    else:
+        y_prob = None
+        y_pred = model.predict(X_test)
 
     results = compute_classification_metrics(y_test, y_pred, y_prob)
     results.update(
@@ -564,6 +573,7 @@ def evaluate_model_on_dataset(
             "total_test_samples": len(y_test),
             "test_churn_count": int(y_test.sum()),
             "test_stay_count": int(len(y_test) - y_test.sum()),
+            "threshold": threshold,
         }
     )
     return results
