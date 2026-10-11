@@ -103,6 +103,13 @@ def load_preset(name: str) -> None:
     st.session_state["loaded_preset"] = name
 
 
+def estimate_total_charges(monthly, tenure):
+    """Monthly x tenure (a new customer with tenure 0 has paid nothing yet). None if inputs are missing."""
+    if monthly is None or tenure is None:
+        return None
+    return round(float(monthly) * int(tenure), 2)
+
+
 def clear_form() -> None:
     """Button callback: empty every field so a customer can be typed in from scratch."""
     for col in pp.EXPECTED_FEATURE_COLUMNS:
@@ -289,6 +296,11 @@ if nav_choice == "Customer Churn Prediction":
 
             with b3:
                 numeric_input("TotalCharges", step=5.0)
+                st.checkbox(
+                    "Estimate Total Charges as Monthly Charges x Tenure",
+                    key="auto_total_charges",
+                    help="Tick this if you don't know the exact total. The value typed above is then ignored.",
+                )
                 st.caption(
                     "Note: For a new customer (tenure 0 or 1), TotalCharges is typically close to MonthlyCharges."
                 )
@@ -299,6 +311,13 @@ if nav_choice == "Customer Churn Prediction":
 
         if submit_prediction:
             input_dict = current_form_values()
+            if st.session_state.get("auto_total_charges"):
+                estimated = estimate_total_charges(input_dict["MonthlyCharges"], input_dict["tenure"])
+                if estimated is None:
+                    st.warning("Fill in Monthly Charges and Tenure to estimate Total Charges.")
+                else:
+                    input_dict["TotalCharges"] = estimated
+                    st.info(f"Total Charges estimated as **${estimated:,.2f}** (Monthly Charges x Tenure).")
             input_dict = pp.clean_customer_input(input_dict)
             is_valid, validation_errors = pp.validate_customer_input(input_dict)
 
