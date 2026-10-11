@@ -222,6 +222,14 @@ def confusion_matrix_chart(cm) -> alt.LayerChart:
     return (heat + text).properties(height=260)
 
 
+def classification_report_frame(report: dict) -> pd.DataFrame:
+    """sklearn's classification_report(output_dict=True) as a rounded table."""
+    rows = {k: v for k, v in report.items() if isinstance(v, dict)}
+    frame = pd.DataFrame(rows).T[["precision", "recall", "f1-score", "support"]]
+    frame["support"] = frame["support"].astype(int)
+    return frame.round(4)
+
+
 def confusion_matrix_takeaways(cm) -> str:
     """Markdown bullet list explaining each confusion matrix cell."""
     cells = pp.confusion_matrix_breakdown(cm)
@@ -495,24 +503,42 @@ elif nav_choice == "Model Evaluation":
             with st.spinner("Loading dataset, performing holdout split and computing metrics..."):
                 try:
                     results = pp.evaluate_model_on_dataset()
-                    st.success("Evaluation complete! Live results match the verified benchmark.")
+                    all_match, comparison = pp.compare_with_benchmark(results)
+                    if all_match:
+                        st.success("Evaluation complete! Live results match the verified benchmark.")
+                    else:
+                        st.warning(
+                            "Evaluation complete, but the live results do NOT match the saved benchmark. "
+                            "The model file may have been retrained or replaced. See the comparison below."
+                        )
 
+                    st.caption(
+                        f"Held-out test set: {results['total_test_samples']:,} customers "
+                        f"({results['test_churn_count']:,} churned, {results['test_stay_count']:,} stayed)."
+                    )
                     e1, e2, e3, e4 = st.columns(4)
                     e1.metric("Accuracy", f"{results['accuracy'] * 100:.2f}%")
                     e2.metric("Recall (Churn)", f"{results['recall'] * 100:.2f}%")
                     e3.metric("Precision (Churn)", f"{results['precision'] * 100:.2f}%")
                     e4.metric("F1-Score (Churn)", f"{results['f1']:.4f}")
+                    e5, e6, _, _ = st.columns(4)
+                    e5.metric("Specificity (Stay)", f"{results['specificity'] * 100:.2f}%")
+                    if "roc_auc" in results:
+                        e6.metric("ROC-AUC", f"{results['roc_auc']:.4f}")
 
-                    st.write("**Live Confusion Matrix:**")
-                    cm_live_df = pd.DataFrame(
-                        results["confusion_matrix"],
-                        columns=["Pred: Stay", "Pred: Churn"],
-                        index=["Actual: Stay", "Actual: Churn"],
-                    )
-                    st.dataframe(cm_live_df, use_container_width=True)
+                    live_cm_col, live_takeaway_col = st.columns([1, 1])
+                    with live_cm_col:
+                        st.write("**Live Confusion Matrix:**")
+                        st.altair_chart(confusion_matrix_chart(results["confusion_matrix"]), use_container_width=True)
+                    with live_takeaway_col:
+                        st.write("**Key Takeaways:**")
+                        st.markdown(confusion_matrix_takeaways(results["confusion_matrix"]))
+
+                    st.write("**Comparison with Saved Benchmark:**")
+                    st.dataframe(comparison, use_container_width=True, hide_index=True)
 
                     st.write("**Classification Report:**")
-                    st.json(results["classification_report"])
+                    st.dataframe(classification_report_frame(results["classification_report"]), use_container_width=True)
                 except Exception as ex:
                     st.error(f"Live evaluation failed: {ex}")
 
