@@ -141,6 +141,22 @@ def category_select(col: str) -> None:
     )
 
 
+def numeric_input(col: str, step: float) -> None:
+    """Labelled number input whose limits come from pp.NUMERIC_RANGES (same as the validator)."""
+    low, high = pp.NUMERIC_RANGES[col]
+    if col == "tenure":
+        st.number_input(
+            pp.FIELD_LABELS[col], min_value=int(low), max_value=int(high), step=int(step),
+            help=FIELD_HELP[col], key=field_key(col),
+        )
+    else:
+        st.number_input(
+            pp.FIELD_LABELS[col], min_value=float(low), max_value=float(high), step=float(step),
+            format="%.2f", help=f"{FIELD_HELP[col]} Allowed range: ${low:,.2f} - ${high:,.2f}.",
+            key=field_key(col),
+        )
+
+
 if field_key("gender") not in st.session_state:
     load_preset(cp.DEFAULT_PRESET)
 
@@ -252,34 +268,11 @@ if nav_choice == "Customer Churn Prediction":
                     category_select(col)
 
             with b2:
-                st.number_input(
-                    pp.FIELD_LABELS["tenure"],
-                    min_value=0,
-                    max_value=120,
-                    step=1,
-                    help=FIELD_HELP["tenure"],
-                    key=field_key("tenure"),
-                )
-                st.number_input(
-                    pp.FIELD_LABELS["MonthlyCharges"],
-                    min_value=0.0,
-                    max_value=500.0,
-                    step=0.5,
-                    format="%.2f",
-                    help=FIELD_HELP["MonthlyCharges"],
-                    key=field_key("MonthlyCharges"),
-                )
+                numeric_input("tenure", step=1)
+                numeric_input("MonthlyCharges", step=0.5)
 
             with b3:
-                st.number_input(
-                    pp.FIELD_LABELS["TotalCharges"],
-                    min_value=0.0,
-                    max_value=50000.0,
-                    step=5.0,
-                    format="%.2f",
-                    help=FIELD_HELP["TotalCharges"],
-                    key=field_key("TotalCharges"),
-                )
+                numeric_input("TotalCharges", step=5.0)
                 st.caption(
                     "Note: For a new customer (tenure 0 or 1), TotalCharges is typically close to MonthlyCharges."
                 )
