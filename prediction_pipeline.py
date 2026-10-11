@@ -20,6 +20,7 @@ from sklearn.metrics import (
     f1_score,
     precision_score,
     recall_score,
+    roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
 
@@ -467,6 +468,45 @@ def load_dataset(dataset_path: str = DEFAULT_DATASET_FILE) -> pd.DataFrame:
     return df
 
 
+def compute_classification_metrics(
+    y_true: Any,
+    y_pred: Any,
+    y_prob: Any = None,
+) -> Dict[str, Any]:
+    """Computes the churn (positive class = 1) metrics for a set of predictions.
+
+    Returns accuracy, precision, recall, f1, specificity, the confusion matrix
+    ([[TN, FP], [FN, TP]]) and sklearn's classification report. If churn
+    probabilities are given, ROC-AUC is added too.
+    """
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    if len(y_true) == 0:
+        raise ValueError("Cannot compute metrics on an empty set of predictions.")
+    if len(y_true) != len(y_pred):
+        raise ValueError(f"y_true has {len(y_true)} rows but y_pred has {len(y_pred)}.")
+
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    tn, fp = int(cm[0][0]), int(cm[0][1])
+
+    metrics: Dict[str, Any] = {
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        # zero_division=0 so a model that never predicts churn gives 0 instead of a warning
+        "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+        "recall": float(recall_score(y_true, y_pred, zero_division=0)),
+        "f1": float(f1_score(y_true, y_pred, zero_division=0)),
+        "specificity": tn / (tn + fp) if (tn + fp) else 0.0,
+        "confusion_matrix": cm.tolist(),
+        "classification_report": classification_report(
+            y_true, y_pred, labels=[0, 1], target_names=["Stay", "Churn"],
+            output_dict=True, zero_division=0,
+        ),
+    }
+    if y_prob is not None and len(np.unique(y_true)) == 2:
+        metrics["roc_auc"] = float(roc_auc_score(y_true, y_prob))
+    return metrics
+
+
 def get_holdout_split(
     df: pd.DataFrame,
     encoders: Dict[str, Any],
@@ -516,22 +556,14 @@ def evaluate_model_on_dataset(
     X_test, y_test = get_holdout_split(df, encoders, feature_names, test_size, random_state)
 
     y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
 
-    acc = float(accuracy_score(y_test, y_pred))
-    prec = float(precision_score(y_test, y_pred))
-    rec = float(recall_score(y_test, y_pred))
-    f1 = float(f1_score(y_test, y_pred))
-    cm = confusion_matrix(y_test, y_pred).tolist()
-    report = classification_report(y_test, y_pred, output_dict=True)
-
-    return {
-        "accuracy": acc,
-        "precision": prec,
-        "recall": rec,
-        "f1": f1,
-        "confusion_matrix": cm,
-        "classification_report": report,
-        "total_test_samples": len(y_test),
-        "test_churn_count": int(y_test.sum()),
-        "test_stay_count": int(len(y_test) - y_test.sum()),
-    }
+    results = compute_classification_metrics(y_test, y_pred, y_prob)
+    results.update(
+        {
+            "total_test_samples": len(y_test),
+            "test_churn_count": int(y_test.sum()),
+            "test_stay_count": int(len(y_test) - y_test.sum()),
+        }
+    )
+    return results
