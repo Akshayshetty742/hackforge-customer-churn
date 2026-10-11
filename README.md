@@ -141,8 +141,17 @@ The application opens at `http://localhost:8501` featuring 3 tabs:
 
    Presets live in `customer_presets.py`. To add one, add an entry to `CUSTOMER_PRESETS`. The tests check that it passes validation and that its "High risk" / "Low risk" name matches the model's prediction.
 2. **Model Evaluation:**
-   - Saved benchmark metrics and confusion matrix breakdown.
-   - Live evaluation runner against `WA_Fn-UseC_-Telco-Customer-Churn.csv`.
+   - **Saved Verified Metrics:** accuracy, precision, recall, F1, specificity and ROC-AUC on the held-out test set, a confusion matrix heatmap (count + % of each actual class) and a plain-English breakdown of TP / FN / FP / TN. All numbers come from `SAVED_BENCHMARK_METRICS` in `prediction_pipeline.py`.
+   - **Run Live Verification:** re-scores the saved model on the same held-out split used in training (stratified 20%, `random_state=42`, 1,409 customers) without retraining. It shows the metrics, the confusion matrix, a saved-vs-live comparison table and the full classification report. If the live numbers don't match the saved benchmark, a warning is shown instead of the success message.
+   - **Decision threshold slider:** evaluate at a threshold other than 0.50 to see the precision / recall trade-off (e.g. 0.30 → recall 88%, precision 46%).
+
+   The same evaluation can be run from Python:
+   ```python
+   import prediction_pipeline as pp
+   results = pp.evaluate_model_on_dataset(threshold=0.5)
+   all_match, table = pp.compare_with_benchmark(results)
+   print(table)
+   ```
 3. **About the Project:**
    - Problem statement, engineering rationale, and sprint deliverable breakdown.
 

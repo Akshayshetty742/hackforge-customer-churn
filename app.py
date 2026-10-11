@@ -88,6 +88,12 @@ def get_cached_artifacts():
     return pp.load_artifacts()
 
 
+@st.cache_data(show_spinner=False)
+def run_live_evaluation(threshold: float) -> dict:
+    """Cached so moving between pages / re-running doesn't re-score the whole test set."""
+    return pp.evaluate_model_on_dataset(threshold=threshold)
+
+
 # ---------------------------------------------------------
 # Form state helpers
 # ---------------------------------------------------------
@@ -499,48 +505,69 @@ elif nav_choice == "Model Evaluation":
             "(`WA_Fn-UseC_-Telco-Customer-Churn.csv`) without retraining."
         )
 
+        threshold = st.slider(
+            "Decision threshold (predict churn when P(churn) >= threshold)",
+            min_value=0.05,
+            max_value=0.95,
+            value=0.50,
+            step=0.05,
+            help="0.50 is the model default. Lower values catch more churners (higher recall) "
+            "but flag more loyal customers (lower precision).",
+        )
+
         if st.button("Run Test Evaluation Against Dataset", type="primary"):
-            with st.spinner("Loading dataset, performing holdout split and computing metrics..."):
-                try:
-                    results = pp.evaluate_model_on_dataset()
-                    all_match, comparison = pp.compare_with_benchmark(results)
-                    if all_match:
-                        st.success("Evaluation complete! Live results match the verified benchmark.")
-                    else:
-                        st.warning(
-                            "Evaluation complete, but the live results do NOT match the saved benchmark. "
-                            "The model file may have been retrained or replaced. See the comparison below."
-                        )
+            st.session_state["live_eval_threshold"] = threshold
 
-                    st.caption(
-                        f"Held-out test set: {results['total_test_samples']:,} customers "
-                        f"({results['test_churn_count']:,} churned, {results['test_stay_count']:,} stayed)."
+        # results are kept in session state so they don't disappear on the next rerun
+        if "live_eval_threshold" in st.session_state:
+            run_threshold = st.session_state["live_eval_threshold"]
+            try:
+                with st.spinner("Loading dataset, performing holdout split and computing metrics..."):
+                    results = run_live_evaluation(run_threshold)
+                is_default_threshold = abs(run_threshold - 0.5) < 1e-9
+                all_match, comparison = pp.compare_with_benchmark(results)
+                if not is_default_threshold:
+                    st.info(
+                        f"Evaluated with a custom threshold of {results['threshold']:.2f}. The saved benchmark "
+                        "was measured at 0.50, so the comparison table below is expected to differ."
                     )
-                    e1, e2, e3, e4 = st.columns(4)
-                    e1.metric("Accuracy", f"{results['accuracy'] * 100:.2f}%")
-                    e2.metric("Recall (Churn)", f"{results['recall'] * 100:.2f}%")
-                    e3.metric("Precision (Churn)", f"{results['precision'] * 100:.2f}%")
-                    e4.metric("F1-Score (Churn)", f"{results['f1']:.4f}")
-                    e5, e6, _, _ = st.columns(4)
-                    e5.metric("Specificity (Stay)", f"{results['specificity'] * 100:.2f}%")
-                    if "roc_auc" in results:
-                        e6.metric("ROC-AUC", f"{results['roc_auc']:.4f}")
+                elif all_match:
+                    st.success("Evaluation complete! Live results match the verified benchmark.")
+                else:
+                    st.warning(
+                        "Evaluation complete, but the live results do NOT match the saved benchmark. "
+                        "The model file may have been retrained or replaced. See the comparison below."
+                    )
 
-                    live_cm_col, live_takeaway_col = st.columns([1, 1])
-                    with live_cm_col:
-                        st.write("**Live Confusion Matrix:**")
-                        st.altair_chart(confusion_matrix_chart(results["confusion_matrix"]), use_container_width=True)
-                    with live_takeaway_col:
-                        st.write("**Key Takeaways:**")
-                        st.markdown(confusion_matrix_takeaways(results["confusion_matrix"]))
+                st.caption(
+                    f"Held-out test set: {results['total_test_samples']:,} customers "
+                    f"({results['test_churn_count']:,} churned, {results['test_stay_count']:,} stayed)."
+                )
+                e1, e2, e3, e4 = st.columns(4)
+                e1.metric("Accuracy", f"{results['accuracy'] * 100:.2f}%")
+                e2.metric("Recall (Churn)", f"{results['recall'] * 100:.2f}%")
+                e3.metric("Precision (Churn)", f"{results['precision'] * 100:.2f}%")
+                e4.metric("F1-Score (Churn)", f"{results['f1']:.4f}")
+                e5, e6, _, _ = st.columns(4)
+                e5.metric("Specificity (Stay)", f"{results['specificity'] * 100:.2f}%")
+                if "roc_auc" in results:
+                    e6.metric("ROC-AUC", f"{results['roc_auc']:.4f}")
 
-                    st.write("**Comparison with Saved Benchmark:**")
-                    st.dataframe(comparison, use_container_width=True, hide_index=True)
+                live_cm_col, live_takeaway_col = st.columns([1, 1])
+                with live_cm_col:
+                    st.write("**Live Confusion Matrix:**")
+                    st.altair_chart(confusion_matrix_chart(results["confusion_matrix"]), use_container_width=True)
+                with live_takeaway_col:
+                    st.write("**Key Takeaways:**")
+                    st.markdown(confusion_matrix_takeaways(results["confusion_matrix"]))
 
-                    st.write("**Classification Report:**")
-                    st.dataframe(classification_report_frame(results["classification_report"]), use_container_width=True)
-                except Exception as ex:
-                    st.error(f"Live evaluation failed: {ex}")
+                st.write("**Comparison with Saved Benchmark:**")
+                st.dataframe(comparison, use_container_width=True, hide_index=True)
+
+                st.write("**Classification Report:**")
+                st.dataframe(classification_report_frame(results["classification_report"]), use_container_width=True)
+            except Exception as ex:
+                st.error(f"Live evaluation failed: {ex}")
 
 
 # ---------------------------------------------------------
@@ -588,7 +615,7 @@ elif nav_choice == "About the Project":
             | **Phase 1** | Model Training & Artifact Serialization (`01_churn_prediction_xgboost.py`) |
             | **Phase 2** | Interactive Streamlit Application (`app.py`) |
             | **Phase 3** | Reliable Modular Pipeline (`prediction_pipeline.py`) |
-            | **Phase 4** | Automated Test Suite with `pytest` (`test_pipeline.py`) |
+            | **Phase 4** | Automated Test Suite with `pytest` (`test_pipeline.py`, `test_app.py`) |
             | **Phase 5** | Continuous Integration CI Workflow via GitHub Actions (`.github/workflows/ci.yml`) |
             """
         )

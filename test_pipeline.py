@@ -396,3 +396,93 @@ def test_get_preset_values_returns_a_copy():
 def test_unknown_preset_raises_key_error():
     with pytest.raises(KeyError, match="Unknown preset"):
         cp.get_preset_values("Does not exist")
+
+
+# ---------------------------------------------------------
+# Model evaluation (issue #4)
+# ---------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def live_results():
+    return pp.evaluate_model_on_dataset()
+
+
+def test_holdout_split_is_the_training_test_split(loaded_artifacts):
+    """Held-out set = same stratified 20% split as the training script (1409 rows, ~26.5% churn)."""
+    _, feature_names, encoders = loaded_artifacts
+    X_test, y_test = pp.get_holdout_split(pp.load_dataset(), encoders, feature_names)
+    assert len(X_test) == pp.SAVED_BENCHMARK_METRICS["test_samples"]
+    assert list(X_test.columns) == feature_names
+    assert int(y_test.sum()) == 374
+
+
+def test_live_evaluation_reports_all_metrics(live_results):
+    for key in ("accuracy", "precision", "recall", "f1", "specificity", "roc_auc"):
+        assert 0.0 <= live_results[key] <= 1.0, key
+    assert live_results["total_test_samples"] == 1409
+    assert live_results["test_churn_count"] + live_results["test_stay_count"] == 1409
+
+
+def test_live_evaluation_matches_saved_benchmark(live_results):
+    all_match, table = pp.compare_with_benchmark(live_results)
+    assert all_match, table
+    assert len(table) == 5
+
+
+def test_confusion_matrix_is_consistent(live_results):
+    cm = live_results["confusion_matrix"]
+    cells = pp.confusion_matrix_breakdown(cm)
+    assert sum(cells.values()) == live_results["total_test_samples"]
+    assert cells["true_positives"] + cells["false_negatives"] == live_results["test_churn_count"]
+    frame = pp.confusion_matrix_frame(cm)
+    assert list(frame.columns) == ["Pred: Stay", "Pred: Churn"]
+    assert list(frame.index) == ["Actual: Stay", "Actual: Churn"]
+
+
+def test_compute_classification_metrics_on_known_values():
+    y_true = [0, 0, 0, 0, 1, 1, 1, 1]
+    y_pred = [0, 0, 0, 1, 0, 1, 1, 1]  # TN=3 FP=1 FN=1 TP=3
+    m = pp.compute_classification_metrics(y_true, y_pred, y_prob=[0.1, 0.2, 0.3, 0.6, 0.4, 0.7, 0.8, 0.9])
+    assert m["confusion_matrix"] == [[3, 1], [1, 3]]
+    assert m["accuracy"] == pytest.approx(0.75)
+    assert m["precision"] == pytest.approx(0.75)
+    assert m["recall"] == pytest.approx(0.75)
+    assert m["specificity"] == pytest.approx(0.75)
+    assert m["roc_auc"] == pytest.approx(0.9375)
+    assert {"Stay", "Churn"} <= set(m["classification_report"])
+
+
+def test_metrics_when_model_never_predicts_churn():
+    m = pp.compute_classification_metrics([0, 1, 0, 1], [0, 0, 0, 0])
+    assert m["precision"] == 0.0 and m["recall"] == 0.0
+    assert m["confusion_matrix"] == [[2, 0], [2, 0]]
+
+
+def test_metrics_input_errors():
+    with pytest.raises(ValueError, match="empty"):
+        pp.compute_classification_metrics([], [])
+    with pytest.raises(ValueError, match="rows"):
+        pp.compute_classification_metrics([0, 1], [0])
+    with pytest.raises(ValueError, match="2x2"):
+        pp.confusion_matrix_breakdown([[1, 2, 3]])
+
+
+def test_lower_threshold_catches_more_churners(live_results):
+    low = pp.evaluate_model_on_dataset(threshold=0.3)
+    assert low["recall"] > live_results["recall"]
+    assert low["threshold"] == 0.3
+    assert pp.compare_with_benchmark(low)[0] is False
+    with pytest.raises(ValueError, match="threshold"):
+        pp.evaluate_model_on_dataset(threshold=1.5)
+
+
+def test_missing_dataset_file(tmp_path):
+    with pytest.raises(FileNotFoundError, match="Dataset file not found"):
+        pp.evaluate_model_on_dataset(dataset_path=str(tmp_path / "nope.csv"))
+
+
+def test_dataset_missing_columns(tmp_path):
+    bad_csv = tmp_path / "bad.csv"
+    pd.read_csv(pp.DEFAULT_DATASET_FILE).drop(columns=["Contract"]).to_csv(bad_csv, index=False)
+    with pytest.raises(ValueError, match="missing required columns"):
+        pp.load_dataset(str(bad_csv))

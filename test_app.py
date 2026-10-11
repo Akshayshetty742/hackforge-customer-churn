@@ -91,3 +91,36 @@ def test_estimated_total_charges(app):
     assert not app.error
     assert "Total Charges estimated" in app.info[0].value
     assert risk_pills(app)
+
+
+def open_evaluation(at):
+    at.sidebar.radio[0].set_value("Model Evaluation").run()
+    return at
+
+
+def run_live(at):
+    next(b for b in at.button if b.label.startswith("Run Test Evaluation")).click()
+    return at.run()
+
+
+def test_live_evaluation_matches_benchmark(app):
+    run_live(open_evaluation(app))
+    assert not app.exception
+    assert any("match the verified benchmark" in s.value for s in app.success)
+    labels = {m.label for m in app.metric}
+    assert {"Accuracy", "Recall (Churn)", "Precision (Churn)", "F1-Score (Churn)"} <= labels
+
+
+def test_live_evaluation_custom_threshold(app):
+    open_evaluation(app)
+    app.slider[0].set_value(0.3)
+    run_live(app)
+    assert not app.exception
+    assert any("custom threshold of 0.30" in i.value for i in app.info)
+
+
+def test_live_results_survive_page_switch(app):
+    run_live(open_evaluation(app))
+    app.sidebar.radio[0].set_value("About the Project").run()
+    open_evaluation(app)
+    assert any("match the verified benchmark" in s.value for s in app.success)
