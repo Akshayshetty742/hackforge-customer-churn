@@ -124,10 +124,22 @@ streamlit run app.py
 
 The application opens at `http://localhost:8501` featuring 3 tabs:
 1. **Customer Churn Prediction:**
-   - Comprehensive customer profile input form (Demographics, Services, Contract, Billing).
-   - "Load High-Risk Sample" and "Load Low-Risk Sample" preset buttons for live demonstration.
-   - Real-time churn classification and probability distribution chart.
-   - Validation checks on numerical ranges and logical service combinations.
+   - Customer profile input form with 19 fields in 3 sections (Demographics, Services, Contract & Billing). Every field has a label and a help tooltip.
+   - **Sample presets:** pick one from the *Sample customer preset* dropdown and press **Load preset**. Loaded values stay in place when you submit the form or switch pages.
+
+     | Preset | What it shows | Model churn probability |
+     | :--- | :--- | :--- |
+     | High risk: new fiber customer | 1-month senior customer, month-to-month fiber, electronic check | ~97% |
+     | Borderline: month-to-month DSL | 14 months, DSL, no long contract | ~50% |
+     | Low risk: loyal family on 2-year contract | 48 months, two-year contract, all add-ons | ~4% |
+     | Low risk: phone-only customer | 60 months, no internet service | ~1% |
+
+   - **Clear form** empties every field so a customer can be typed in from scratch. Fields left empty are listed as missing.
+   - **Estimate Total Charges** checkbox: fills in Total Charges as Monthly Charges x Tenure when the exact total isn't known.
+   - Real-time churn classification, probability chart and a table of the profile that was scored.
+   - Invalid input (missing fields, out-of-range numbers, impossible service combinations) is shown as one error list and no prediction is made. See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#5-input-validation--boundary-guards) for all the rules.
+
+   Presets live in `customer_presets.py`. To add one, add an entry to `CUSTOMER_PRESETS`. The tests check that it passes validation and that its "High risk" / "Low risk" name matches the model's prediction.
 2. **Model Evaluation:**
    - Saved benchmark metrics and confusion matrix breakdown.
    - Live evaluation runner against `WA_Fn-UseC_-Telco-Customer-Churn.csv`.
@@ -154,10 +166,10 @@ This generates:
 The project includes unit and integration tests covering artifact loading, input validation, numerical boundaries, unseen categorical handling, column ordering, and prediction outputs:
 
 ```bash
-pytest test_pipeline.py -v
+pytest -v
 ```
 
-All 13 automated tests run in under 3 seconds without retraining the model.
+This runs `test_pipeline.py` (pipeline, validation and preset tests) and `test_app.py` (headless Streamlit UI tests for the form). The whole suite takes a few seconds and never retrains the model.
 
 ---
 
@@ -173,7 +185,9 @@ hackforge-customer-churn/
 ├── 01_churn_prediction_xgboost.py     # Original model training & hyperparameter tuning
 ├── app.py                             # Interactive Streamlit application
 ├── prediction_pipeline.py             # Reusable inference, validation & evaluation module
-├── test_pipeline.py                   # Automated pytest test suite
+├── customer_presets.py                # Sample customer profiles for the input form
+├── test_pipeline.py                   # Automated pytest test suite (pipeline, validation, presets)
+├── test_app.py                        # Streamlit AppTest UI tests for the input form
 │
 ├── customer_churn_model_xgboost.pkl   # Serialized tuned XGBoost model artifact
 ├── encoders.pkl                       # Serialized categorical LabelEncoders
@@ -194,7 +208,7 @@ A GitHub Actions workflow is provided in `.github/workflows/ci.yml`. On every pu
 1. Checks out repository code.
 2. Sets up Python 3.11 with pip caching.
 3. Installs dependencies from `requirements.txt`.
-4. Executes `pytest test_pipeline.py -v`.
+4. Executes `pytest -v` (all test files).
 5. Requires no private secrets or credentials, ensuring public repository compatibility.
 
 ---
