@@ -108,6 +108,16 @@ NUMERIC_RANGES: Dict[str, Tuple[float, float]] = {
     "TotalCharges": (0.0, 50000.0),
 }
 
+# Add-on services that only make sense when the customer has internet
+INTERNET_DEPENDENT_COLUMNS: List[str] = [
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+]
+
 # Allowed TotalCharges / (MonthlyCharges * tenure) ratio for the billing consistency guard
 BILLING_RATIO_RANGE: Tuple[float, float] = (0.5, 2.0)
 
@@ -295,21 +305,22 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     if data.get("PhoneService") == "No":
         if data.get("MultipleLines") not in ("No phone service", "No"):
             errors.append("When PhoneService is 'No', MultipleLines should be 'No phone service'.")
+    elif data.get("PhoneService") == "Yes" and data.get("MultipleLines") == "No phone service":
+        errors.append("MultipleLines cannot be 'No phone service' when PhoneService is 'Yes'.")
 
     # Consistency checks: InternetService
     if data.get("InternetService") == "No":
-        internet_features = [
-            "OnlineSecurity",
-            "OnlineBackup",
-            "DeviceProtection",
-            "TechSupport",
-            "StreamingTV",
-            "StreamingMovies",
-        ]
-        for feat in internet_features:
+        for feat in INTERNET_DEPENDENT_COLUMNS:
             if data.get(feat) not in ("No internet service", "No"):
                 errors.append(
                     f"When InternetService is 'No', {feat} should be 'No internet service'."
+                )
+    elif data.get("InternetService") in ("DSL", "Fiber optic"):
+        for feat in INTERNET_DEPENDENT_COLUMNS:
+            if data.get(feat) == "No internet service":
+                errors.append(
+                    f"{feat} cannot be 'No internet service' when InternetService is "
+                    f"'{data['InternetService']}'."
                 )
 
     is_valid = len(errors) == 0
