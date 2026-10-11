@@ -218,3 +218,7 @@ A GitHub Actions workflow is provided in `.github/workflows/ci.yml`. On every pu
   - Comprehensive automated test suite (`test_pipeline.py`).
   - GitHub Actions CI workflow (`.github/workflows/ci.yml`).
   - Project documentation and developer guides.
+  - 
+  ## Deliverable 2 Verification
+
+Automated tests are run through the Customer Churn CI Pipeline using GitHub Actions.
