@@ -442,6 +442,31 @@ def predict_churn(
     return prediction, prob_churn, prob_dict
 
 
+def load_dataset(dataset_path: str = DEFAULT_DATASET_FILE) -> pd.DataFrame:
+    """Loads the Telco CSV and applies the same cleaning as the training script.
+
+    - drops customerID
+    - blank TotalCharges (brand new customers) -> 0.0
+
+    Raises:
+        FileNotFoundError: if the CSV does not exist.
+        ValueError: if the target or feature columns are missing.
+    """
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"Dataset file not found at: '{dataset_path}'")
+
+    df = pd.read_csv(dataset_path)
+    if "customerID" in df.columns:
+        df = df.drop(columns=["customerID"])
+
+    missing = [c for c in EXPECTED_FEATURE_COLUMNS + ["Churn"] if c not in df.columns]
+    if missing:
+        raise ValueError(f"Dataset is missing required columns: {missing}")
+
+    df["TotalCharges"] = df["TotalCharges"].replace({" ": "0.0"}).astype(float)
+    return df
+
+
 def evaluate_model_on_dataset(
     dataset_path: str = DEFAULT_DATASET_FILE,
     model_path: str = DEFAULT_MODEL_FILE,
@@ -453,16 +478,8 @@ def evaluate_model_on_dataset(
 
     Uses the exact stratified test split protocol without retraining the model.
     """
-    if not os.path.exists(dataset_path):
-        raise FileNotFoundError(f"Dataset file not found at: '{dataset_path}'")
-
     model, feature_names, encoders = load_artifacts(model_path, encoder_path)
-
-    df = pd.read_csv(dataset_path)
-    if "customerID" in df.columns:
-        df = df.drop(columns=["customerID"])
-
-    df["TotalCharges"] = df["TotalCharges"].replace({" ": "0.0"}).astype(float)
+    df = load_dataset(dataset_path)
 
     for col, enc in encoders.items():
         if col in df.columns:
