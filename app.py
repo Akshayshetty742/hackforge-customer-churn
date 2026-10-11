@@ -326,12 +326,15 @@ if nav_choice == "Customer Churn Prediction":
                 "TotalCharges": total_charges,
             }
 
+            input_dict = pp.clean_customer_input(input_dict)
             is_valid, validation_errors = pp.validate_customer_input(input_dict)
 
             if not is_valid:
-                st.error("Input validation failed:")
-                for err in validation_errors:
-                    st.write(f"- {err}")
+                st.error(
+                    f"**Please fix {len(validation_errors)} problem(s) before running the prediction:**\n\n"
+                    + "\n".join(f"- {err}" for err in validation_errors),
+                    icon="🚫",
+                )
             else:
                 try:
                     processed_df = pp.preprocess_input(input_dict, encoders, feature_names)
@@ -380,6 +383,9 @@ if nav_choice == "Customer Churn Prediction":
                         unsafe_allow_html=True,
                     )
 
+                except ValueError as ex:
+                    # raised by the preprocess_input boundary guards
+                    st.error(f"Input could not be processed: {ex}", icon="🚫")
                 except Exception as ex:
                     st.error(f"Inference error: {ex}")
 
