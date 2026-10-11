@@ -228,6 +228,32 @@ def load_artifacts(
     return model, feature_names, encoders
 
 
+def clean_customer_input(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Returns a normalised copy of a raw customer record.
+
+    - strips surrounding whitespace from text values (" Yes " -> "Yes")
+    - converts numeric strings to numbers ("29.85" -> 29.85)
+    - drops customerID since it is never used by the model
+
+    Anything that cannot be converted is left untouched so that
+    validate_customer_input() can report a proper error for it.
+    """
+    cleaned: Dict[str, Any] = {}
+    for key, value in data.items():
+        if key == "customerID":
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+        if key in NUMERIC_RANGES and not _is_missing(value):
+            try:
+                number = _to_number(value)
+                value = int(number) if key in ("tenure", "SeniorCitizen") and number.is_integer() else number
+            except (ValueError, TypeError):
+                pass
+        cleaned[key] = value
+    return cleaned
+
+
 def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Validates input payload fields, ranges, and consistency.
 
