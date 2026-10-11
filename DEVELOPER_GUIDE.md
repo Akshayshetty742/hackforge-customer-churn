@@ -83,7 +83,45 @@ prediction = model.predict(new_customer)
 print("Churn Prediction:", "Yes" if prediction[0] == 1 else "No")
 ```
 
-## 5. Future Improvements
+## 5. Input Validation & Boundary Guards
+
+Every customer record goes through three steps in `prediction_pipeline.py` before it reaches the model:
+
+1.  **`clean_customer_input(data)`**: strips whitespace from text, turns numeric strings into numbers and drops `customerID`. Values it can't convert are left alone so step 2 can report them.
+2.  **`validate_customer_input(data)`**: returns `(is_valid, errors)`. It never raises, so the UI can show every problem at once.
+3.  **`preprocess_input(...)`**: has its own guards and raises a `ValueError` with a readable message if bad data skipped step 2 (e.g. batch scoring from a notebook).
+
+### Validation rules
+
+| Rule | Details |
+| :--- | :--- |
+| Required fields | All 19 features must be present. `None`, `""`, whitespace-only and `NaN` count as missing. |
+| Categories | Must be a string from `VALID_CATEGORIES` (the classes in `encoders.pkl`). The error lists the allowed values. |
+| Numeric types | `tenure`, `MonthlyCharges`, `TotalCharges`, `SeniorCitizen` must be finite numbers. Booleans, `inf` and text like `"abc"` are rejected. |
+| Ranges (`NUMERIC_RANGES`) | `tenure` 0–120 (whole months), `MonthlyCharges` $0–$500, `TotalCharges` $0–$50,000, `SeniorCitizen` 0 or 1. Bounds are inclusive. |
+| Billing consistency | `TotalCharges` must be within 0.5x–2.0x of `MonthlyCharges × tenure` (`BILLING_RATIO_RANGE`). With tenure 0 it cannot exceed `MonthlyCharges`. Every row of the Telco CSV falls between 0.69x and 1.57x. |
+| Phone services | `PhoneService = "No"` → `MultipleLines` must be `"No phone service"` (or `"No"`); `PhoneService = "Yes"` → `MultipleLines` cannot be `"No phone service"`. |
+| Internet add-ons | `InternetService = "No"` → the 6 add-ons in `INTERNET_DEPENDENT_COLUMNS` must be `"No internet service"` (or `"No"`); with DSL / Fiber optic they cannot be `"No internet service"`. |
+
+### Example
+
+```python
+import prediction_pipeline as pp
+
+record = pp.clean_customer_input(raw_record)
+ok, errors = pp.validate_customer_input(record)
+if not ok:
+    for err in errors:
+        print("-", err)
+else:
+    model, features, encoders = pp.load_artifacts()
+    X = pp.preprocess_input(record, encoders, features)
+    label, churn_prob, _ = pp.predict_churn(model, X)
+```
+
+If the model is ever retrained with new category values, update `VALID_CATEGORIES`. The test `test_valid_categories_match_fitted_encoders` fails until the two match.
+
+## 6. Future Improvements
 To further increase accuracy (target: >80%):
 1.  **Feature Engineering:** Create new features like `TenureYears` (binning months) or `HasStreamingService` (combining TV/Movies).
 2.  **Threshold Tuning:** Adjust the classification threshold. By default, probability > 0.5 is "Churn". Lowering to 0.4 might catch more churners (higher Recall) at the cost of Precision.
