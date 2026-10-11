@@ -17,6 +17,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
+import customer_presets as cp
 import prediction_pipeline as pp
 
 
@@ -352,3 +353,46 @@ def test_preprocess_input_guards(sample_valid_input, loaded_artifacts, field, va
     bad_input[field] = value
     with pytest.raises(ValueError, match=message):
         pp.preprocess_input(bad_input, encoders, feature_names)
+
+
+# ---------------------------------------------------------
+# Customer form presets (issue #1)
+# ---------------------------------------------------------
+
+@pytest.mark.parametrize("name", list(cp.CUSTOMER_PRESETS))
+def test_preset_is_complete_and_valid(name):
+    values = cp.get_preset_values(name)
+    assert set(values) == set(pp.EXPECTED_FEATURE_COLUMNS)
+    assert pp.validate_customer_input(values) == (True, [])
+    assert cp.CUSTOMER_PRESETS[name]["description"].strip()
+
+
+@pytest.mark.parametrize("name", list(cp.CUSTOMER_PRESETS))
+def test_preset_prediction_matches_its_label(name, loaded_artifacts):
+    """A 'High risk' preset should be predicted to churn and a 'Low risk' one to stay."""
+    model, feature_names, encoders = loaded_artifacts
+    processed = pp.preprocess_input(cp.get_preset_values(name), encoders, feature_names)
+    _, churn_prob, _ = pp.predict_churn(model, processed)
+    if name.startswith("High risk"):
+        assert churn_prob > 0.5
+    elif name.startswith("Low risk"):
+        assert churn_prob < 0.5
+    else:
+        # borderline preset should sit somewhere around the threshold
+        assert 0.3 <= churn_prob <= 0.7
+
+
+def test_default_preset_exists():
+    assert cp.DEFAULT_PRESET in cp.CUSTOMER_PRESETS
+
+
+def test_get_preset_values_returns_a_copy():
+    name = cp.DEFAULT_PRESET
+    values = cp.get_preset_values(name)
+    values["tenure"] = 999
+    assert cp.get_preset_values(name)["tenure"] != 999
+
+
+def test_unknown_preset_raises_key_error():
+    with pytest.raises(KeyError, match="Unknown preset"):
+        cp.get_preset_values("Does not exist")
