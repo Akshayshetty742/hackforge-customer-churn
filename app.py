@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import sys
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -194,6 +195,31 @@ if field_key("gender") not in st.session_state:
 for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choice", "auto_total_charges"]:
     if _key in st.session_state:
         st.session_state[_key] = st.session_state[_key]
+
+
+def confusion_matrix_chart(cm) -> alt.LayerChart:
+    """Heatmap of the confusion matrix with the count and row % written in each cell."""
+    frame = pp.confusion_matrix_frame(cm)
+    long_df = frame.reset_index(names="Actual").melt(id_vars="Actual", var_name="Predicted", value_name="Count")
+    long_df["Actual"] = long_df["Actual"].str.replace("Actual: ", "")
+    long_df["Predicted"] = long_df["Predicted"].str.replace("Pred: ", "")
+    long_df["Row %"] = long_df["Count"] / long_df.groupby("Actual")["Count"].transform("sum")
+    long_df["Label"] = long_df.apply(lambda r: f"{r['Count']:,}  ({r['Row %']:.0%})", axis=1)
+
+    base = alt.Chart(long_df).encode(
+        x=alt.X("Predicted:N", sort=["Stay", "Churn"], title="Predicted"),
+        y=alt.Y("Actual:N", sort=["Stay", "Churn"], title="Actual"),
+    )
+    heat = base.mark_rect().encode(
+        color=alt.Color("Count:Q", scale=alt.Scale(scheme="blues"), legend=None),
+        tooltip=["Actual", "Predicted", "Count", alt.Tooltip("Row %:Q", format=".1%")],
+    )
+    text = base.mark_text(fontSize=16, fontWeight="bold").encode(
+        text="Label:N",
+        # white text on the dark (high count) cells so it stays readable
+        color=alt.condition(alt.datum.Count > long_df["Count"].max() / 2, alt.value("white"), alt.value("black")),
+    )
+    return (heat + text).properties(height=260)
 
 
 def confusion_matrix_takeaways(cm) -> str:
@@ -451,7 +477,8 @@ elif nav_choice == "Model Evaluation":
 
         with c_mat_col:
             st.write("**Confusion Matrix:**")
-            st.dataframe(pp.confusion_matrix_frame(saved["confusion_matrix"]), use_container_width=True)
+            st.altair_chart(confusion_matrix_chart(saved["confusion_matrix"]), use_container_width=True)
+            st.caption("Each cell shows the number of customers and the % of that actual class.")
 
         with c_summary_col:
             st.write("**Key Takeaways:**")
