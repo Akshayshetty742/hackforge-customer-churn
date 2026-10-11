@@ -599,3 +599,42 @@ def evaluate_model_on_dataset(
         }
     )
     return results
+
+
+def compare_with_benchmark(
+    results: Dict[str, Any],
+    benchmark: Dict[str, Any] = SAVED_BENCHMARK_METRICS,
+    tolerance: float = 0.005,
+) -> Tuple[bool, pd.DataFrame]:
+    """Compares live evaluation results with the saved benchmark metrics.
+
+    Returns (all_match, table) where the table has one row per metric with the
+    saved value, the live value, the difference and whether it is within tolerance.
+    The confusion matrix has to match exactly.
+    """
+    rows = []
+    for metric in ("accuracy", "precision", "recall", "f1"):
+        saved = float(benchmark[f"test_{metric}"])
+        live = float(results[metric])
+        rows.append(
+            {
+                "Metric": metric.capitalize() if metric != "f1" else "F1-score",
+                "Saved": f"{saved:.4f}",
+                "Live": f"{live:.4f}",
+                "Difference": f"{live - saved:+.4f}",
+                "Match": abs(live - saved) <= tolerance,
+            }
+        )
+
+    cm_match = np.array_equal(np.asarray(results["confusion_matrix"]), np.asarray(benchmark["confusion_matrix"]))
+    rows.append(
+        {
+            "Metric": "Confusion matrix",
+            "Saved": str(benchmark["confusion_matrix"]),
+            "Live": str(results["confusion_matrix"]),
+            "Difference": "-" if cm_match else "differs",
+            "Match": bool(cm_match),
+        }
+    )
+    table = pd.DataFrame(rows)
+    return bool(table["Match"].all()), table
