@@ -143,6 +143,24 @@ def _is_missing(value: Any) -> bool:
     except (TypeError, ValueError):
         return False
 
+
+def _to_number(value: Any) -> float:
+    """Converts a value to a finite float.
+
+    Raises:
+        TypeError: for booleans and other non numeric types.
+        ValueError: for non numeric strings, NaN and infinity.
+    """
+    # bool is a subclass of int, but True/False is never a sensible tenure or charge
+    if isinstance(value, (bool, np.bool_)):
+        raise TypeError("boolean values are not accepted")
+    if isinstance(value, str):
+        value = value.strip()
+    number = float(value)
+    if not np.isfinite(number):
+        raise ValueError("value must be a finite number")
+    return number
+
 # Verified benchmark metrics from the saved XGBoost model tested on stratified 20% test split (random_state=42)
 SAVED_BENCHMARK_METRICS: Dict[str, Any] = {
     "test_accuracy": 0.7566,
@@ -231,32 +249,32 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
 
     # Numerical validations
     try:
-        tenure = float(data["tenure"])
+        tenure = _to_number(data["tenure"])
         if tenure < 0 or tenure > 120:
             errors.append("Tenure must be between 0 and 120 months.")
     except (ValueError, TypeError):
-        errors.append("Tenure must be a valid number.")
+        errors.append(f"Tenure must be a valid number, got {data['tenure']!r}.")
 
     try:
-        monthly = float(data["MonthlyCharges"])
+        monthly = _to_number(data["MonthlyCharges"])
         if monthly < 0 or monthly > 500:
             errors.append("MonthlyCharges must be between $0.00 and $500.00.")
     except (ValueError, TypeError):
-        errors.append("MonthlyCharges must be a valid number.")
+        errors.append(f"MonthlyCharges must be a valid number, got {data['MonthlyCharges']!r}.")
 
     try:
-        total = float(data["TotalCharges"])
+        total = _to_number(data["TotalCharges"])
         if total < 0 or total > 50000:
             errors.append("TotalCharges must be between $0.00 and $50,000.00.")
     except (ValueError, TypeError):
-        errors.append("TotalCharges must be a valid number.")
+        errors.append(f"TotalCharges must be a valid number, got {data['TotalCharges']!r}.")
 
     try:
-        senior = int(data["SeniorCitizen"])
+        senior = _to_number(data["SeniorCitizen"])
         if senior not in (0, 1):
             errors.append("SeniorCitizen must be either 0 (No) or 1 (Yes).")
     except (ValueError, TypeError):
-        errors.append("SeniorCitizen must be 0 or 1.")
+        errors.append(f"SeniorCitizen must be 0 or 1, got {data['SeniorCitizen']!r}.")
 
     # Consistency checks: PhoneService
     if data.get("PhoneService") == "No":
