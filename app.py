@@ -107,6 +107,40 @@ def current_form_values() -> dict:
     return {col: st.session_state.get(field_key(col)) for col in pp.EXPECTED_FEATURE_COLUMNS}
 
 
+# Tooltip text shown next to every form field
+FIELD_HELP = {
+    "gender": "Customer's gender as recorded on the account.",
+    "SeniorCitizen": "Is the customer 65 or older?",
+    "Partner": "Does the customer have a partner / spouse?",
+    "Dependents": "Does the customer have dependents (children, parents, etc.)?",
+    "tenure": "Number of whole months the customer has been with the company (0 = brand new).",
+    "PhoneService": "Does the customer have a home phone service?",
+    "MultipleLines": "More than one phone line? Use 'No phone service' if Phone Service is 'No'.",
+    "InternetService": "Type of internet connection, or 'No' if the customer has no internet.",
+    "OnlineSecurity": "Online security add-on. Use 'No internet service' if Internet Service is 'No'.",
+    "OnlineBackup": "Online backup add-on. Use 'No internet service' if Internet Service is 'No'.",
+    "DeviceProtection": "Device protection plan. Use 'No internet service' if Internet Service is 'No'.",
+    "TechSupport": "Premium tech support. Use 'No internet service' if Internet Service is 'No'.",
+    "StreamingTV": "Streams TV through the internet service.",
+    "StreamingMovies": "Streams movies through the internet service.",
+    "Contract": "Current contract length.",
+    "PaperlessBilling": "Does the customer receive bills electronically?",
+    "PaymentMethod": "How the customer pays their bill.",
+    "MonthlyCharges": "Amount currently billed every month, in dollars.",
+    "TotalCharges": "Total amount billed over the whole tenure, in dollars (roughly Monthly Charges x Tenure).",
+}
+
+
+def category_select(col: str) -> None:
+    """Labelled selectbox for one categorical field, bound to session state."""
+    st.selectbox(
+        pp.FIELD_LABELS[col],
+        options=pp.VALID_CATEGORIES[col],
+        help=FIELD_HELP[col],
+        key=field_key(col),
+    )
+
+
 if field_key("gender") not in st.session_state:
     load_preset(cp.DEFAULT_PRESET)
 
@@ -185,64 +219,65 @@ if nav_choice == "Customer Churn Prediction":
             st.subheader("1. Customer Demographics")
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                st.selectbox("Gender", options=pp.VALID_CATEGORIES["gender"], key=field_key("gender"))
+                category_select("gender")
             with c2:
                 st.selectbox(
-                    "Senior Citizen",
+                    pp.FIELD_LABELS["SeniorCitizen"],
                     options=[0, 1],
                     format_func=lambda x: "Yes" if x == 1 else "No",
+                    help=FIELD_HELP["SeniorCitizen"],
                     key=field_key("SeniorCitizen"),
                 )
             with c3:
-                st.selectbox("Partner", options=pp.VALID_CATEGORIES["Partner"], key=field_key("Partner"))
+                category_select("Partner")
             with c4:
-                st.selectbox(
-                    "Dependents", options=pp.VALID_CATEGORIES["Dependents"], key=field_key("Dependents")
-                )
+                category_select("Dependents")
 
             st.subheader("2. Subscribed Services")
             s1, s2, s3 = st.columns(3)
             with s1:
                 for col in ("PhoneService", "MultipleLines", "InternetService"):
-                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
+                    category_select(col)
             with s2:
                 for col in ("OnlineSecurity", "OnlineBackup", "DeviceProtection"):
-                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
+                    category_select(col)
             with s3:
                 for col in ("TechSupport", "StreamingTV", "StreamingMovies"):
-                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
+                    category_select(col)
 
             st.subheader("3. Contract & Billing Details")
             b1, b2, b3 = st.columns(3)
             with b1:
                 for col in ("Contract", "PaperlessBilling", "PaymentMethod"):
-                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
+                    category_select(col)
 
             with b2:
                 st.number_input(
-                    "Tenure (Months with company)",
+                    pp.FIELD_LABELS["tenure"],
                     min_value=0,
                     max_value=120,
                     step=1,
-                    help="Number of months customer has stayed with service.",
+                    help=FIELD_HELP["tenure"],
                     key=field_key("tenure"),
                 )
                 st.number_input(
-                    "Monthly Charges ($)",
+                    pp.FIELD_LABELS["MonthlyCharges"],
                     min_value=0.0,
                     max_value=500.0,
                     step=0.5,
                     format="%.2f",
+                    help=FIELD_HELP["MonthlyCharges"],
                     key=field_key("MonthlyCharges"),
                 )
 
             with b3:
                 st.number_input(
-                    "Total Charges ($)",
+                    pp.FIELD_LABELS["TotalCharges"],
                     min_value=0.0,
                     max_value=50000.0,
                     step=5.0,
                     format="%.2f",
+                    help=FIELD_HELP["TotalCharges"],
                     key=field_key("TotalCharges"),
                 )
                 st.caption(
