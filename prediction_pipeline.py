@@ -108,6 +108,9 @@ NUMERIC_RANGES: Dict[str, Tuple[float, float]] = {
     "TotalCharges": (0.0, 50000.0),
 }
 
+# Allowed TotalCharges / (MonthlyCharges * tenure) ratio for the billing consistency guard
+BILLING_RATIO_RANGE: Tuple[float, float] = (0.5, 2.0)
+
 # Human readable names used in error messages and form labels
 FIELD_LABELS: Dict[str, str] = {
     "gender": "Gender",
@@ -269,6 +272,24 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
         elif col == "tenure" and not float(numbers[col]).is_integer():
             # preprocess_input casts tenure to int, so 12.7 would silently become 12
             errors.append("Tenure must be a whole number of months.")
+
+    # Billing consistency: TotalCharges should roughly equal MonthlyCharges * tenure.
+    # In the Telco dataset the ratio is always between ~0.69 and ~1.57, so 0.5 - 2.0 is generous.
+    if not errors:
+        tenure, monthly, total = numbers["tenure"], numbers["MonthlyCharges"], numbers["TotalCharges"]
+        if tenure == 0:
+            if total > monthly:
+                errors.append(
+                    "TotalCharges cannot be more than MonthlyCharges for a new customer (tenure 0)."
+                )
+        else:
+            expected = monthly * tenure
+            low, high = BILLING_RATIO_RANGE
+            if not expected * low <= total <= expected * high:
+                errors.append(
+                    f"TotalCharges (${total:,.2f}) does not match MonthlyCharges x tenure "
+                    f"(about ${expected:,.2f}). Please double check the billing values."
+                )
 
     # Consistency checks: PhoneService
     if data.get("PhoneService") == "No":
