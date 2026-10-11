@@ -507,6 +507,28 @@ def compute_classification_metrics(
     return metrics
 
 
+def confusion_matrix_breakdown(cm: Any) -> Dict[str, int]:
+    """Names the 4 cells of a 2x2 confusion matrix laid out as [[TN, FP], [FN, TP]]."""
+    cm = np.asarray(cm)
+    if cm.shape != (2, 2):
+        raise ValueError(f"Expected a 2x2 confusion matrix, got shape {cm.shape}.")
+    return {
+        "true_negatives": int(cm[0][0]),   # loyal customers correctly predicted to stay
+        "false_positives": int(cm[0][1]),  # loyal customers flagged as churn
+        "false_negatives": int(cm[1][0]),  # churners the model missed
+        "true_positives": int(cm[1][1]),   # churners correctly flagged
+    }
+
+
+def confusion_matrix_frame(cm: Any) -> pd.DataFrame:
+    """Labelled DataFrame version of the confusion matrix for display."""
+    return pd.DataFrame(
+        np.asarray(cm),
+        columns=["Pred: Stay", "Pred: Churn"],
+        index=["Actual: Stay", "Actual: Churn"],
+    )
+
+
 def get_holdout_split(
     df: pd.DataFrame,
     encoders: Dict[str, Any],
