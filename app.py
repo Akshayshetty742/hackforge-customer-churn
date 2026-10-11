@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import os
 import sys
+import altair as alt
 import pandas as pd
 import streamlit as st
 
 # Ensure local imports work reliably
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import customer_presets as cp
 import prediction_pipeline as pp
 
 # ---------------------------------------------------------
@@ -102,6 +104,168 @@ def get_cached_artifacts():
     return pp.load_artifacts()
 
 
+@st.cache_data(show_spinner=False)
+def run_live_evaluation(threshold: float) -> dict:
+    """Cached so moving between pages / re-running doesn't re-score the whole test set."""
+    return pp.evaluate_model_on_dataset(threshold=threshold)
+
+
+# ---------------------------------------------------------
+# Form state helpers
+# ---------------------------------------------------------
+# Every form widget has a key in st.session_state, so the values survive reruns
+# (e.g. after pressing a preset button and then submitting the form).
+def field_key(col: str) -> str:
+    return f"form_{col}"
+
+
+def load_preset(name: str) -> None:
+    """Button callback: copy a preset's values into the form widgets."""
+    for col, value in cp.get_preset_values(name).items():
+        st.session_state[field_key(col)] = value
+    st.session_state["loaded_preset"] = name
+
+
+def estimate_total_charges(monthly, tenure):
+    """Monthly x tenure (a new customer with tenure 0 has paid nothing yet). None if inputs are missing."""
+    if monthly is None or tenure is None:
+        return None
+    return round(float(monthly) * int(tenure), 2)
+
+
+def profile_summary(values: dict) -> pd.DataFrame:
+    """Readable two-column table (Field / Value) of a customer record."""
+    rows = []
+    for col in pp.EXPECTED_FEATURE_COLUMNS:
+        value = values.get(col)
+        if col == "SeniorCitizen":
+            value = "Yes" if value == 1 else "No"
+        elif col in ("MonthlyCharges", "TotalCharges"):
+            value = f"${float(value):,.2f}"
+        rows.append({"Field": pp.FIELD_LABELS[col], "Value": str(value)})
+    return pd.DataFrame(rows)
+
+
+def clear_form() -> None:
+    """Button callback: empty every field so a customer can be typed in from scratch."""
+    for col in pp.EXPECTED_FEATURE_COLUMNS:
+        st.session_state[field_key(col)] = None
+    st.session_state["loaded_preset"] = None
+
+
+def current_form_values() -> dict:
+    return {col: st.session_state.get(field_key(col)) for col in pp.EXPECTED_FEATURE_COLUMNS}
+
+
+# Tooltip text shown next to every form field
+FIELD_HELP = {
+    "gender": "Customer's gender as recorded on the account.",
+    "SeniorCitizen": "Is the customer 65 or older?",
+    "Partner": "Does the customer have a partner / spouse?",
+    "Dependents": "Does the customer have dependents (children, parents, etc.)?",
+    "tenure": "Number of whole months the customer has been with the company (0 = brand new).",
+    "PhoneService": "Does the customer have a home phone service?",
+    "MultipleLines": "More than one phone line? Use 'No phone service' if Phone Service is 'No'.",
+    "InternetService": "Type of internet connection, or 'No' if the customer has no internet.",
+    "OnlineSecurity": "Online security add-on. Use 'No internet service' if Internet Service is 'No'.",
+    "OnlineBackup": "Online backup add-on. Use 'No internet service' if Internet Service is 'No'.",
+    "DeviceProtection": "Device protection plan. Use 'No internet service' if Internet Service is 'No'.",
+    "TechSupport": "Premium tech support. Use 'No internet service' if Internet Service is 'No'.",
+    "StreamingTV": "Streams TV through the internet service.",
+    "StreamingMovies": "Streams movies through the internet service.",
+    "Contract": "Current contract length.",
+    "PaperlessBilling": "Does the customer receive bills electronically?",
+    "PaymentMethod": "How the customer pays their bill.",
+    "MonthlyCharges": "Amount currently billed every month, in dollars.",
+    "TotalCharges": "Total amount billed over the whole tenure, in dollars (roughly Monthly Charges x Tenure).",
+}
+
+
+def category_select(col: str) -> None:
+    """Labelled selectbox for one categorical field, bound to session state."""
+    st.selectbox(
+        pp.FIELD_LABELS[col],
+        options=pp.VALID_CATEGORIES[col],
+        help=FIELD_HELP[col],
+        placeholder="Select an option...",
+        key=field_key(col),
+    )
+
+
+def numeric_input(col: str, step: float) -> None:
+    """Labelled number input whose limits come from pp.NUMERIC_RANGES (same as the validator)."""
+    low, high = pp.NUMERIC_RANGES[col]
+    if col == "tenure":
+        st.number_input(
+            pp.FIELD_LABELS[col], min_value=int(low), max_value=int(high), step=int(step),
+            help=FIELD_HELP[col], key=field_key(col),
+        )
+    else:
+        st.number_input(
+            pp.FIELD_LABELS[col], min_value=float(low), max_value=float(high), step=float(step),
+            format="%.2f", help=f"{FIELD_HELP[col]} Allowed range: ${low:,.2f} - ${high:,.2f}.",
+            key=field_key(col),
+        )
+
+
+if field_key("gender") not in st.session_state:
+    load_preset(cp.DEFAULT_PRESET)
+
+# Streamlit deletes a widget's state when the widget is not drawn on a run (e.g. while
+# the user is on the "Model Evaluation" page). Re-assigning the keys every run keeps
+# the form values when the user comes back to the prediction page.
+for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choice", "auto_total_charges"]:
+    if _key in st.session_state:
+        st.session_state[_key] = st.session_state[_key]
+
+
+def confusion_matrix_chart(cm) -> alt.LayerChart:
+    """Heatmap of the confusion matrix with the count and row % written in each cell."""
+    frame = pp.confusion_matrix_frame(cm)
+    long_df = frame.reset_index(names="Actual").melt(id_vars="Actual", var_name="Predicted", value_name="Count")
+    long_df["Actual"] = long_df["Actual"].str.replace("Actual: ", "")
+    long_df["Predicted"] = long_df["Predicted"].str.replace("Pred: ", "")
+    long_df["Row %"] = long_df["Count"] / long_df.groupby("Actual")["Count"].transform("sum")
+    long_df["Label"] = long_df.apply(lambda r: f"{r['Count']:,}  ({r['Row %']:.0%})", axis=1)
+
+    base = alt.Chart(long_df).encode(
+        x=alt.X("Predicted:N", sort=["Stay", "Churn"], title="Predicted"),
+        y=alt.Y("Actual:N", sort=["Stay", "Churn"], title="Actual"),
+    )
+    heat = base.mark_rect().encode(
+        color=alt.Color("Count:Q", scale=alt.Scale(scheme="blues"), legend=None),
+        tooltip=["Actual", "Predicted", "Count", alt.Tooltip("Row %:Q", format=".1%")],
+    )
+    text = base.mark_text(fontSize=16, fontWeight="bold").encode(
+        text="Label:N",
+        # white text on the dark (high count) cells so it stays readable
+        color=alt.condition(alt.datum.Count > long_df["Count"].max() / 2, alt.value("white"), alt.value("black")),
+    )
+    return (heat + text).properties(height=260)
+
+
+def classification_report_frame(report: dict) -> pd.DataFrame:
+    """sklearn's classification_report(output_dict=True) as a rounded table."""
+    rows = {k: v for k, v in report.items() if isinstance(v, dict)}
+    frame = pd.DataFrame(rows).T[["precision", "recall", "f1-score", "support"]]
+    frame["support"] = frame["support"].astype(int)
+    return frame.round(4)
+
+
+def confusion_matrix_takeaways(cm) -> str:
+    """Markdown bullet list explaining each confusion matrix cell."""
+    cells = pp.confusion_matrix_breakdown(cm)
+    tp, fn = cells["true_positives"], cells["false_negatives"]
+    miss_rate = fn / (tp + fn) if (tp + fn) else 0.0
+    return (
+        f"- **True Positives ({tp:,}):** At-risk customers correctly targeted for retention campaigns.\n"
+        f"- **False Negatives ({fn:,}):** Churners missed by the model (~{miss_rate:.1%} miss rate).\n"
+        f"- **False Positives ({cells['false_positives']:,}):** Non-churning customers offered incentives "
+        "(tolerable trade-off for retention).\n"
+        f"- **True Negatives ({cells['true_negatives']:,}):** Loyal customers correctly identified."
+    )
+
+
 # ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
 # ---------------------------------------------------------
@@ -152,164 +316,80 @@ if nav_choice == "Customer Churn Prediction":
             "are present in the project directory."
         )
     else:
-        # Pre-fill preset buttons for demonstration
-        col_demo1, col_demo2, col_demo3 = st.columns([1, 1, 2])
-        preset = None
-        with col_demo1:
-            if st.button("Load High-Risk Sample", use_container_width=True):
-                preset = "high"
-        with col_demo2:
-            if st.button("Load Low-Risk Sample", use_container_width=True):
-                preset = "low"
-
-        # Defaults
-        default_gender = "Female" if preset == "high" else "Male"
-        default_senior = 1 if preset == "high" else 0
-        default_partner = "No" if preset == "high" else "Yes"
-        default_dependents = "No" if preset == "high" else "Yes"
-        default_tenure = 1 if preset == "high" else 48
-        default_phone = "Yes"
-        default_multiple = "No" if preset == "high" else "Yes"
-        default_internet = "Fiber optic" if preset == "high" else "DSL"
-        default_security = "No" if preset == "high" else "Yes"
-        default_backup = "No" if preset == "high" else "Yes"
-        default_device = "No" if preset == "high" else "Yes"
-        default_tech = "No" if preset == "high" else "Yes"
-        default_tv = "Yes" if preset == "high" else "No"
-        default_movies = "Yes" if preset == "high" else "No"
-        default_contract = "Month-to-month" if preset == "high" else "Two year"
-        default_paperless = "Yes" if preset == "high" else "No"
-        default_payment = "Electronic check" if preset == "high" else "Bank transfer (automatic)"
-        default_monthly = 95.50 if preset == "high" else 55.20
-        default_total = 95.50 if preset == "high" else 2650.00
+        st.subheader("Start from a sample customer")
+        preset_col, button_col, clear_col = st.columns([3, 1, 1], vertical_alignment="bottom")
+        with preset_col:
+            chosen_preset = st.selectbox(
+                "Sample customer preset",
+                options=list(cp.CUSTOMER_PRESETS),
+                key="preset_choice",
+                help="Pick a sample profile and press 'Load preset' to fill in the form below.",
+            )
+        with button_col:
+            st.button(
+                "Load preset",
+                use_container_width=True,
+                on_click=load_preset,
+                args=(chosen_preset,),
+            )
+        with clear_col:
+            st.button(
+                "Clear form",
+                use_container_width=True,
+                on_click=clear_form,
+                help="Empty all fields to enter a new customer manually.",
+            )
+        st.caption(cp.CUSTOMER_PRESETS[chosen_preset]["description"])
+        if st.session_state.get("loaded_preset"):
+            st.caption(f"Form currently filled from: **{st.session_state['loaded_preset']}** (you can still edit any field).")
 
         with st.form("churn_prediction_form"):
             st.subheader("1. Customer Demographics")
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                gender = st.selectbox(
-                    "Gender",
-                    options=list(encoders["gender"].classes_),
-                    index=list(encoders["gender"].classes_).index(default_gender),
-                )
+                category_select("gender")
             with c2:
-                senior = st.selectbox(
-                    "Senior Citizen",
+                st.selectbox(
+                    pp.FIELD_LABELS["SeniorCitizen"],
                     options=[0, 1],
                     format_func=lambda x: "Yes" if x == 1 else "No",
-                    index=1 if default_senior == 1 else 0,
+                    help=FIELD_HELP["SeniorCitizen"],
+                    placeholder="Select an option...",
+                    key=field_key("SeniorCitizen"),
                 )
             with c3:
-                partner = st.selectbox(
-                    "Partner",
-                    options=list(encoders["Partner"].classes_),
-                    index=list(encoders["Partner"].classes_).index(default_partner),
-                )
+                category_select("Partner")
             with c4:
-                dependents = st.selectbox(
-                    "Dependents",
-                    options=list(encoders["Dependents"].classes_),
-                    index=list(encoders["Dependents"].classes_).index(default_dependents),
-                )
+                category_select("Dependents")
 
             st.subheader("2. Subscribed Services")
             s1, s2, s3 = st.columns(3)
             with s1:
-                phone_service = st.selectbox(
-                    "Phone Service",
-                    options=list(encoders["PhoneService"].classes_),
-                    index=list(encoders["PhoneService"].classes_).index(default_phone),
-                )
-                multiple_lines = st.selectbox(
-                    "Multiple Lines",
-                    options=list(encoders["MultipleLines"].classes_),
-                    index=list(encoders["MultipleLines"].classes_).index(default_multiple),
-                )
-                internet_service = st.selectbox(
-                    "Internet Service",
-                    options=list(encoders["InternetService"].classes_),
-                    index=list(encoders["InternetService"].classes_).index(default_internet),
-                )
-
+                for col in ("PhoneService", "MultipleLines", "InternetService"):
+                    category_select(col)
             with s2:
-                online_security = st.selectbox(
-                    "Online Security",
-                    options=list(encoders["OnlineSecurity"].classes_),
-                    index=list(encoders["OnlineSecurity"].classes_).index(default_security),
-                )
-                online_backup = st.selectbox(
-                    "Online Backup",
-                    options=list(encoders["OnlineBackup"].classes_),
-                    index=list(encoders["OnlineBackup"].classes_).index(default_backup),
-                )
-                device_protection = st.selectbox(
-                    "Device Protection",
-                    options=list(encoders["DeviceProtection"].classes_),
-                    index=list(encoders["DeviceProtection"].classes_).index(default_device),
-                )
-
+                for col in ("OnlineSecurity", "OnlineBackup", "DeviceProtection"):
+                    category_select(col)
             with s3:
-                tech_support = st.selectbox(
-                    "Tech Support",
-                    options=list(encoders["TechSupport"].classes_),
-                    index=list(encoders["TechSupport"].classes_).index(default_tech),
-                )
-                streaming_tv = st.selectbox(
-                    "Streaming TV",
-                    options=list(encoders["StreamingTV"].classes_),
-                    index=list(encoders["StreamingTV"].classes_).index(default_tv),
-                )
-                streaming_movies = st.selectbox(
-                    "Streaming Movies",
-                    options=list(encoders["StreamingMovies"].classes_),
-                    index=list(encoders["StreamingMovies"].classes_).index(default_movies),
-                )
+                for col in ("TechSupport", "StreamingTV", "StreamingMovies"):
+                    category_select(col)
 
             st.subheader("3. Contract & Billing Details")
             b1, b2, b3 = st.columns(3)
             with b1:
-                contract = st.selectbox(
-                    "Contract Type",
-                    options=list(encoders["Contract"].classes_),
-                    index=list(encoders["Contract"].classes_).index(default_contract),
-                )
-                paperless = st.selectbox(
-                    "Paperless Billing",
-                    options=list(encoders["PaperlessBilling"].classes_),
-                    index=list(encoders["PaperlessBilling"].classes_).index(default_paperless),
-                )
-                payment_method = st.selectbox(
-                    "Payment Method",
-                    options=list(encoders["PaymentMethod"].classes_),
-                    index=list(encoders["PaymentMethod"].classes_).index(default_payment),
-                )
+                for col in ("Contract", "PaperlessBilling", "PaymentMethod"):
+                    category_select(col)
 
             with b2:
-                tenure = st.number_input(
-                    "Tenure (Months with company)",
-                    min_value=0,
-                    max_value=120,
-                    value=int(default_tenure),
-                    step=1,
-                    help="Number of months customer has stayed with service.",
-                )
-                monthly_charges = st.number_input(
-                    "Monthly Charges ($)",
-                    min_value=0.0,
-                    max_value=500.0,
-                    value=float(default_monthly),
-                    step=0.5,
-                    format="%.2f",
-                )
+                numeric_input("tenure", step=1)
+                numeric_input("MonthlyCharges", step=0.5)
 
             with b3:
-                total_charges = st.number_input(
-                    "Total Charges ($)",
-                    min_value=0.0,
-                    max_value=50000.0,
-                    value=float(default_total),
-                    step=5.0,
-                    format="%.2f",
+                numeric_input("TotalCharges", step=5.0)
+                st.checkbox(
+                    "Estimate Total Charges as Monthly Charges x Tenure",
+                    key="auto_total_charges",
+                    help="Tick this if you don't know the exact total. The value typed above is then ignored.",
                 )
                 st.caption(
                     "Note: For a new customer (tenure 0 or 1), TotalCharges is typically close to MonthlyCharges."
@@ -334,34 +414,23 @@ if nav_choice == "Customer Churn Prediction":
             )
 
         if submit_prediction:
-            input_dict = {
-                "gender": gender,
-                "SeniorCitizen": senior,
-                "Partner": partner,
-                "Dependents": dependents,
-                "tenure": tenure,
-                "PhoneService": phone_service,
-                "MultipleLines": multiple_lines,
-                "InternetService": internet_service,
-                "OnlineSecurity": online_security,
-                "OnlineBackup": online_backup,
-                "DeviceProtection": device_protection,
-                "TechSupport": tech_support,
-                "StreamingTV": streaming_tv,
-                "StreamingMovies": streaming_movies,
-                "Contract": contract,
-                "PaperlessBilling": paperless,
-                "PaymentMethod": payment_method,
-                "MonthlyCharges": monthly_charges,
-                "TotalCharges": total_charges,
-            }
-
+            input_dict = current_form_values()
+            if st.session_state.get("auto_total_charges"):
+                estimated = estimate_total_charges(input_dict["MonthlyCharges"], input_dict["tenure"])
+                if estimated is None:
+                    st.warning("Fill in Monthly Charges and Tenure to estimate Total Charges.")
+                else:
+                    input_dict["TotalCharges"] = estimated
+                    st.info(f"Total Charges estimated as **${estimated:,.2f}** (Monthly Charges x Tenure).")
+            input_dict = pp.clean_customer_input(input_dict)
             is_valid, validation_errors = pp.validate_customer_input(input_dict)
 
             if not is_valid:
-                st.error("Input validation failed:")
-                for err in validation_errors:
-                    st.write(f"- {err}")
+                st.error(
+                    f"**Please fix {len(validation_errors)} problem(s) before running the prediction:**\n\n"
+                    + "\n".join(f"- {err}" for err in validation_errors),
+                    icon="🚫",
+                )
             else:
                 try:
                     processed_df = pp.preprocess_input(input_dict, encoders, feature_names)
@@ -451,6 +520,12 @@ if nav_choice == "Customer Churn Prediction":
                         unsafe_allow_html=True,
                     )
 
+                    with st.expander("Customer profile used for this prediction"):
+                        st.dataframe(profile_summary(input_dict), use_container_width=True, hide_index=True)
+
+                except ValueError as ex:
+                    # raised by the preprocess_input boundary guards
+                    st.error(f"Input could not be processed: {ex}", icon="🚫")
                 except Exception as ex:
                     st.error(f"Inference error: {ex}")
 
@@ -469,12 +544,17 @@ elif nav_choice == "Model Evaluation":
     tab_saved, tab_live = st.tabs(["Saved Verified Metrics", "Run Live Verification"])
 
     with tab_saved:
-        st.subheader("Holdout Test Set Performance (N = 1,409)")
+        saved = pp.SAVED_BENCHMARK_METRICS
+        st.subheader(f"Holdout Test Set Performance (N = {saved['test_samples']:,})")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Accuracy", "75.7%", help="Overall correct predictions across both classes")
-        m2.metric("Recall (Churn)", "75.1%", help="Identifies ~75% of all actual churning customers")
-        m3.metric("Precision (Churn)", "52.9%", help="Proportion of predicted churners who actually left")
-        m4.metric("F1-Score (Churn)", "0.621", help="Harmonic mean of precision and recall")
+        m1.metric("Accuracy", f"{saved['test_accuracy']:.1%}", help="Overall correct predictions across both classes")
+        m2.metric("Recall (Churn)", f"{saved['test_recall']:.1%}", help="Share of actual churners the model catches")
+        m3.metric("Precision (Churn)", f"{saved['test_precision']:.1%}", help="Proportion of predicted churners who actually left")
+        m4.metric("F1-Score (Churn)", f"{saved['test_f1']:.3f}", help="Harmonic mean of precision and recall")
+
+        m5, m6, _, _ = st.columns(4)
+        m5.metric("Specificity (Stay)", f"{saved['test_specificity']:.1%}", help="Share of loyal customers correctly predicted to stay")
+        m6.metric("ROC-AUC", f"{saved['test_roc_auc']:.3f}", help="How well the churn probability ranks churners above loyal customers (0.5 = random)")
 
         st.divider()
 
@@ -482,23 +562,12 @@ elif nav_choice == "Model Evaluation":
 
         with c_mat_col:
             st.write("**Confusion Matrix:**")
-            cm_df = pd.DataFrame(
-                [[785, 250], [93, 281]],
-                columns=["Pred: Stay", "Pred: Churn"],
-                index=["Actual: Stay", "Actual: Churn"],
-            )
-            st.dataframe(cm_df, use_container_width=True)
+            st.altair_chart(confusion_matrix_chart(saved["confusion_matrix"]), use_container_width=True)
+            st.caption("Each cell shows the number of customers and the % of that actual class.")
 
         with c_summary_col:
             st.write("**Key Takeaways:**")
-            st.markdown(
-                """
-                - **True Positives (281):** At-risk customers correctly targeted for retention campaigns.
-                - **False Negatives (93):** Churners missed by the model (~24.9% miss rate).
-                - **False Positives (250):** Non-churning customers offered incentives (tolerable trade-off for retention).
-                - **True Negatives (785):** Loyal customers correctly identified.
-                """
-            )
+            st.markdown(confusion_matrix_takeaways(saved["confusion_matrix"]))
 
     with tab_live:
         st.subheader("Live Benchmark Runner")
@@ -507,30 +576,69 @@ elif nav_choice == "Model Evaluation":
             "(`WA_Fn-UseC_-Telco-Customer-Churn.csv`) without retraining."
         )
 
+        threshold = st.slider(
+            "Decision threshold (predict churn when P(churn) >= threshold)",
+            min_value=0.05,
+            max_value=0.95,
+            value=0.50,
+            step=0.05,
+            help="0.50 is the model default. Lower values catch more churners (higher recall) "
+            "but flag more loyal customers (lower precision).",
+        )
+
         if st.button("Run Test Evaluation Against Dataset", type="primary"):
-            with st.spinner("Loading dataset, performing holdout split and computing metrics..."):
-                try:
-                    results = pp.evaluate_model_on_dataset()
-                    st.success("Evaluation complete! Live results match the verified benchmark.")
+            st.session_state["live_eval_threshold"] = threshold
 
-                    e1, e2, e3, e4 = st.columns(4)
-                    e1.metric("Accuracy", f"{results['accuracy'] * 100:.2f}%")
-                    e2.metric("Recall (Churn)", f"{results['recall'] * 100:.2f}%")
-                    e3.metric("Precision (Churn)", f"{results['precision'] * 100:.2f}%")
-                    e4.metric("F1-Score (Churn)", f"{results['f1']:.4f}")
-
-                    st.write("**Live Confusion Matrix:**")
-                    cm_live_df = pd.DataFrame(
-                        results["confusion_matrix"],
-                        columns=["Pred: Stay", "Pred: Churn"],
-                        index=["Actual: Stay", "Actual: Churn"],
+        # results are kept in session state so they don't disappear on the next rerun
+        if "live_eval_threshold" in st.session_state:
+            run_threshold = st.session_state["live_eval_threshold"]
+            try:
+                with st.spinner("Loading dataset, performing holdout split and computing metrics..."):
+                    results = run_live_evaluation(run_threshold)
+                is_default_threshold = abs(run_threshold - 0.5) < 1e-9
+                all_match, comparison = pp.compare_with_benchmark(results)
+                if not is_default_threshold:
+                    st.info(
+                        f"Evaluated with a custom threshold of {results['threshold']:.2f}. The saved benchmark "
+                        "was measured at 0.50, so the comparison table below is expected to differ."
                     )
-                    st.dataframe(cm_live_df, use_container_width=True)
+                elif all_match:
+                    st.success("Evaluation complete! Live results match the verified benchmark.")
+                else:
+                    st.warning(
+                        "Evaluation complete, but the live results do NOT match the saved benchmark. "
+                        "The model file may have been retrained or replaced. See the comparison below."
+                    )
 
-                    st.write("**Classification Report:**")
-                    st.json(results["classification_report"])
-                except Exception as ex:
-                    st.error(f"Live evaluation failed: {ex}")
+                st.caption(
+                    f"Held-out test set: {results['total_test_samples']:,} customers "
+                    f"({results['test_churn_count']:,} churned, {results['test_stay_count']:,} stayed)."
+                )
+                e1, e2, e3, e4 = st.columns(4)
+                e1.metric("Accuracy", f"{results['accuracy'] * 100:.2f}%")
+                e2.metric("Recall (Churn)", f"{results['recall'] * 100:.2f}%")
+                e3.metric("Precision (Churn)", f"{results['precision'] * 100:.2f}%")
+                e4.metric("F1-Score (Churn)", f"{results['f1']:.4f}")
+                e5, e6, _, _ = st.columns(4)
+                e5.metric("Specificity (Stay)", f"{results['specificity'] * 100:.2f}%")
+                if "roc_auc" in results:
+                    e6.metric("ROC-AUC", f"{results['roc_auc']:.4f}")
+
+                live_cm_col, live_takeaway_col = st.columns([1, 1])
+                with live_cm_col:
+                    st.write("**Live Confusion Matrix:**")
+                    st.altair_chart(confusion_matrix_chart(results["confusion_matrix"]), use_container_width=True)
+                with live_takeaway_col:
+                    st.write("**Key Takeaways:**")
+                    st.markdown(confusion_matrix_takeaways(results["confusion_matrix"]))
+
+                st.write("**Comparison with Saved Benchmark:**")
+                st.dataframe(comparison, use_container_width=True, hide_index=True)
+
+                st.write("**Classification Report:**")
+                st.dataframe(classification_report_frame(results["classification_report"]), use_container_width=True)
+            except Exception as ex:
+                st.error(f"Live evaluation failed: {ex}")
 
 
 # ---------------------------------------------------------
@@ -578,7 +686,7 @@ elif nav_choice == "About the Project":
             | **Phase 1** | Model Training & Artifact Serialization (`01_churn_prediction_xgboost.py`) |
             | **Phase 2** | Interactive Streamlit Application (`app.py`) |
             | **Phase 3** | Reliable Modular Pipeline (`prediction_pipeline.py`) |
-            | **Phase 4** | Automated Test Suite with `pytest` (`test_pipeline.py`) |
+            | **Phase 4** | Automated Test Suite with `pytest` (`test_pipeline.py`, `test_app.py`) |
             | **Phase 5** | Continuous Integration CI Workflow via GitHub Actions (`.github/workflows/ci.yml`) |
             """
         )
