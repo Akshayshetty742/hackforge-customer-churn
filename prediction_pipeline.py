@@ -108,6 +108,41 @@ NUMERIC_RANGES: Dict[str, Tuple[float, float]] = {
     "TotalCharges": (0.0, 50000.0),
 }
 
+# Human readable names used in error messages and form labels
+FIELD_LABELS: Dict[str, str] = {
+    "gender": "Gender",
+    "SeniorCitizen": "Senior Citizen",
+    "Partner": "Partner",
+    "Dependents": "Dependents",
+    "tenure": "Tenure (months)",
+    "PhoneService": "Phone Service",
+    "MultipleLines": "Multiple Lines",
+    "InternetService": "Internet Service",
+    "OnlineSecurity": "Online Security",
+    "OnlineBackup": "Online Backup",
+    "DeviceProtection": "Device Protection",
+    "TechSupport": "Tech Support",
+    "StreamingTV": "Streaming TV",
+    "StreamingMovies": "Streaming Movies",
+    "Contract": "Contract Type",
+    "PaperlessBilling": "Paperless Billing",
+    "PaymentMethod": "Payment Method",
+    "MonthlyCharges": "Monthly Charges ($)",
+    "TotalCharges": "Total Charges ($)",
+}
+
+
+def _is_missing(value: Any) -> bool:
+    """True for None, empty / whitespace-only strings and NaN."""
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip() == ""
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
+
 # Verified benchmark metrics from the saved XGBoost model tested on stratified 20% test split (random_state=42)
 SAVED_BENCHMARK_METRICS: Dict[str, Any] = {
     "test_accuracy": 0.7566,
@@ -171,9 +206,12 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     errors: List[str] = []
 
     # Check for missing required features
+    if not isinstance(data, dict):
+        return False, ["Customer input must be a dictionary of field values."]
+
     for col in EXPECTED_FEATURE_COLUMNS:
-        if col not in data or data[col] is None or data[col] == "":
-            errors.append(f"Missing required field: '{col}'")
+        if col not in data or _is_missing(data[col]):
+            errors.append(f"Missing required field: '{col}' ({FIELD_LABELS[col]})")
 
     if errors:
         return False, errors
