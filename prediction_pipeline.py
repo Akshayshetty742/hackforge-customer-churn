@@ -76,6 +76,38 @@ NUMERICAL_COLUMNS: List[str] = [
     "TotalCharges",
 ]
 
+# Allowed values for every categorical field (same classes the LabelEncoders were fitted on)
+VALID_CATEGORIES: Dict[str, List[str]] = {
+    "gender": ["Female", "Male"],
+    "Partner": ["No", "Yes"],
+    "Dependents": ["No", "Yes"],
+    "PhoneService": ["No", "Yes"],
+    "MultipleLines": ["No", "No phone service", "Yes"],
+    "InternetService": ["DSL", "Fiber optic", "No"],
+    "OnlineSecurity": ["No", "No internet service", "Yes"],
+    "OnlineBackup": ["No", "No internet service", "Yes"],
+    "DeviceProtection": ["No", "No internet service", "Yes"],
+    "TechSupport": ["No", "No internet service", "Yes"],
+    "StreamingTV": ["No", "No internet service", "Yes"],
+    "StreamingMovies": ["No", "No internet service", "Yes"],
+    "Contract": ["Month-to-month", "One year", "Two year"],
+    "PaperlessBilling": ["No", "Yes"],
+    "PaymentMethod": [
+        "Bank transfer (automatic)",
+        "Credit card (automatic)",
+        "Electronic check",
+        "Mailed check",
+    ],
+}
+
+# Inclusive (min, max) bounds for numeric fields
+NUMERIC_RANGES: Dict[str, Tuple[float, float]] = {
+    "SeniorCitizen": (0, 1),
+    "tenure": (0, 120),
+    "MonthlyCharges": (0.0, 500.0),
+    "TotalCharges": (0.0, 50000.0),
+}
+
 # Verified benchmark metrics from the saved XGBoost model tested on stratified 20% test split (random_state=42)
 SAVED_BENCHMARK_METRICS: Dict[str, Any] = {
     "test_accuracy": 0.7566,
