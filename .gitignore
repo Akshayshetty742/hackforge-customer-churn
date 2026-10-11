@@ -1,2 +1,30 @@
-/cache
-/project.local.yml
+# Python virtual environments
+churn_env/
+venv/
+.venv/
+env/
+
+# Python byte-code and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+.serena/
+
+# Jupyter
+*.ipynb_checkpoints
+
+# Environment variables & secrets
+.env
+.env.*
+secrets.toml
+
+# Nested extraction archive folder
+customer-churn-predictior-main/

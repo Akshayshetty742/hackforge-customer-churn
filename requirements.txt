@@ -1,4 +1,6 @@
-pandas
-numpy
-scikit-learn
-xgboost
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+streamlit>=1.30.0
+pytest>=8.0.0
