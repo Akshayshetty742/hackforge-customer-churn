@@ -100,6 +100,7 @@ def load_preset(name: str) -> None:
     """Button callback: copy a preset's values into the form widgets."""
     for col, value in cp.get_preset_values(name).items():
         st.session_state[field_key(col)] = value
+    st.session_state["loaded_preset"] = name
 
 
 def current_form_values() -> dict:
@@ -160,21 +161,25 @@ if nav_choice == "Customer Churn Prediction":
             "are present in the project directory."
         )
     else:
-        col_demo1, col_demo2, col_demo3 = st.columns([1, 1, 2])
-        with col_demo1:
+        st.subheader("Start from a sample customer")
+        preset_col, button_col = st.columns([3, 1], vertical_alignment="bottom")
+        with preset_col:
+            chosen_preset = st.selectbox(
+                "Sample customer preset",
+                options=list(cp.CUSTOMER_PRESETS),
+                key="preset_choice",
+                help="Pick a sample profile and press 'Load preset' to fill in the form below.",
+            )
+        with button_col:
             st.button(
-                "Load High-Risk Sample",
+                "Load preset",
                 use_container_width=True,
                 on_click=load_preset,
-                args=("High risk: new fiber customer",),
+                args=(chosen_preset,),
             )
-        with col_demo2:
-            st.button(
-                "Load Low-Risk Sample",
-                use_container_width=True,
-                on_click=load_preset,
-                args=(cp.DEFAULT_PRESET,),
-            )
+        st.caption(cp.CUSTOMER_PRESETS[chosen_preset]["description"])
+        if st.session_state.get("loaded_preset"):
+            st.caption(f"Form currently filled from: **{st.session_state['loaded_preset']}** (you can still edit any field).")
 
         with st.form("churn_prediction_form"):
             st.subheader("1. Customer Demographics")
