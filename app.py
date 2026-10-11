@@ -67,6 +67,22 @@ st.markdown(
         display: inline-block;
         font-weight: 600;
     }
+    .churn-pill-moderate {
+        background-color: rgba(234, 179, 8, 0.2);
+        color: #facc15;
+        border: 1px solid #eab308;
+        padding: 6px 14px;
+        border-radius: 20px;
+        display: inline-block;
+        font-weight: 600;
+    }
+    .recommendation-box {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-top: 10px;
+    }
     .alert-disclaimer {
         font-size: 0.85rem;
         color: #cbd5e1;
@@ -379,6 +395,20 @@ if nav_choice == "Customer Churn Prediction":
                     "Note: For a new customer (tenure 0 or 1), TotalCharges is typically close to MonthlyCharges."
                 )
 
+            st.subheader("4. Decision Threshold & Intervention Settings")
+            st.caption(
+                "Adjust the classification decision boundary. Lowering the threshold catches more at-risk churners "
+                "at the cost of additional false positives."
+            )
+            decision_threshold = st.slider(
+                "Classification Decision Threshold",
+                min_value=0.20,
+                max_value=0.80,
+                value=0.50,
+                step=0.05,
+                help="If churn probability is >= this threshold, customer is classified as Churn (Default: 0.50).",
+            )
+
             submit_prediction = st.form_submit_button(
                 "Run Churn Prediction", use_container_width=True, type="primary"
             )
@@ -404,7 +434,9 @@ if nav_choice == "Customer Churn Prediction":
             else:
                 try:
                     processed_df = pp.preprocess_input(input_dict, encoders, feature_names)
-                    pred_class, churn_prob, prob_dict = pp.predict_churn(model, processed_df)
+                    pred_class, churn_prob, prob_dict, risk_tier = pp.predict_churn(
+                        model, processed_df, threshold=decision_threshold
+                    )
 
                     st.markdown("### Prediction Outcome")
                     res_col1, res_col2 = st.columns([1, 1])
@@ -425,9 +457,48 @@ if nav_choice == "Customer Churn Prediction":
                         st.metric(
                             label="Predicted Churn Probability",
                             value=f"{churn_prob * 100:.1f}%",
-                            delta=f"{(churn_prob - 0.5) * 100:+.1f}% vs threshold (50%)",
+                            delta=f"{(churn_prob - decision_threshold) * 100:+.1f}% vs threshold ({decision_threshold * 100:.0f}%)",
                             delta_color="inverse",
                         )
+
+                        # Display 3-tier operational risk category
+                        st.write(f"**Operational Risk Tier:** `{risk_tier} Risk`")
+                        if risk_tier == "High":
+                            st.markdown(
+                                "<div class='churn-pill-high'>Critical Churn Hazard (>65%)</div>",
+                                unsafe_allow_html=True,
+                            )
+                            st.markdown(
+                                "<div class='recommendation-box'>"
+                                "<strong>Recommended Action:</strong> Immediate outreach by Senior Account Executive. "
+                                "Offer customized long-term contract discounts and priority support."
+                                "</div>",
+                                unsafe_allow_html=True,
+                            )
+                        elif risk_tier == "Moderate":
+                            st.markdown(
+                                "<div class='churn-pill-moderate'>Moderate Churn Risk (35%–65%)</div>",
+                                unsafe_allow_html=True,
+                            )
+                            st.markdown(
+                                "<div class='recommendation-box'>"
+                                "<strong>Recommended Action:</strong> Automated customer success check-in. "
+                                "Send targeted engagement emails or review bundle service utilization."
+                                "</div>",
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.markdown(
+                                "<div class='churn-pill-low'>Low Churn Risk (<35%)</div>",
+                                unsafe_allow_html=True,
+                            )
+                            st.markdown(
+                                "<div class='recommendation-box'>"
+                                "<strong>Recommended Action:</strong> Standard relationship maintenance. "
+                                "Account is stable; candidate for loyalty rewards or subtle cross-sell."
+                                "</div>",
+                                unsafe_allow_html=True,
+                            )
 
                     with res_col2:
                         st.write("**Probability Distribution:**")
@@ -442,8 +513,8 @@ if nav_choice == "Customer Churn Prediction":
                     st.markdown(
                         "<div class='alert-disclaimer'>"
                         "<strong>Notice:</strong> Machine learning predictions represent statistical estimates "
-                        "trained on historical customer profiles. They should be used to assist proactive customer retention, "
-                        "not as absolute guarantees. "
+                        "trained on historical customer profiles. Risk categories (<35% Low, 35%–65% Moderate, >65% High) "
+                        "are operational business rules for intervention prioritization, not statistically validated cutoffs. "
                         "Notice that <code>customerID</code> was excluded from all feature sets."
                         "</div>",
                         unsafe_allow_html=True,

@@ -157,15 +157,16 @@ def test_unknown_categorical_value_handling(sample_valid_input, loaded_artifacts
 
 
 def test_successful_prediction_output(sample_valid_input, loaded_artifacts):
-    """Test that end-to-end prediction returns expected class (0 or 1) and valid probability."""
+    """Test that end-to-end prediction returns expected class (0 or 1), probability, and risk tier."""
     model, feature_names, encoders = loaded_artifacts
     processed_df = pp.preprocess_input(sample_valid_input, encoders, feature_names)
-    pred_class, churn_prob, prob_dict = pp.predict_churn(model, processed_df)
+    pred_class, churn_prob, prob_dict, risk_tier = pp.predict_churn(model, processed_df)
 
     assert pred_class in (0, 1)
     assert 0.0 <= churn_prob <= 1.0
     assert "Stay" in prob_dict and "Churn" in prob_dict
     assert pytest.approx(prob_dict["Stay"] + prob_dict["Churn"], rel=1e-4) == 1.0
+    assert risk_tier in ("Low", "Moderate", "High")
 
 
 def test_customer_id_is_dropped_if_present(sample_valid_input, loaded_artifacts):
@@ -177,6 +178,54 @@ def test_customer_id_is_dropped_if_present(sample_valid_input, loaded_artifacts)
     processed = pp.preprocess_input(input_with_id, encoders, feature_names)
     assert "customerID" not in processed.columns
     assert list(processed.columns) == feature_names
+
+
+def test_predict_churn_custom_threshold(sample_valid_input, loaded_artifacts):
+    """Test that decision threshold shifts classification sensitivity."""
+    model, feature_names, encoders = loaded_artifacts
+    processed_df = pp.preprocess_input(sample_valid_input, encoders, feature_names)
+
+    # First inspect raw probability
+    _, prob_churn, _, _ = pp.predict_churn(model, processed_df)
+
+    # If threshold is lower than prob, must predict 1 (Churn)
+    lower_threshold = max(0.01, prob_churn - 0.05)
+    pred_low, _, _, _ = pp.predict_churn(model, processed_df, threshold=lower_threshold)
+    assert pred_low == 1
+
+    # If threshold is higher than prob, must predict 0 (Stay)
+    higher_threshold = min(0.99, prob_churn + 0.05)
+    pred_high, _, _, _ = pp.predict_churn(model, processed_df, threshold=higher_threshold)
+    assert pred_high == 0
+
+
+def test_threshold_boundary_cases(sample_valid_input, loaded_artifacts):
+    """Test exact threshold boundary conditions (prob == threshold)."""
+    model, feature_names, encoders = loaded_artifacts
+    processed_df = pp.preprocess_input(sample_valid_input, encoders, feature_names)
+    _, prob_churn, _, _ = pp.predict_churn(model, processed_df)
+
+    # Exact equality: prob_churn >= threshold -> should be class 1
+    pred_exact, _, _, _ = pp.predict_churn(model, processed_df, threshold=prob_churn)
+    assert pred_exact == 1
+
+
+def test_get_risk_tier_classification():
+    """Verify get_risk_tier maps probability ranges to Low, Moderate, and High tiers."""
+    # Low risk (< 0.35)
+    assert pp.get_risk_tier(0.0) == "Low"
+    assert pp.get_risk_tier(0.20) == "Low"
+    assert pp.get_risk_tier(0.349) == "Low"
+
+    # Moderate risk (0.35 to 0.65)
+    assert pp.get_risk_tier(0.35) == "Moderate"
+    assert pp.get_risk_tier(0.50) == "Moderate"
+    assert pp.get_risk_tier(0.65) == "Moderate"
+
+    # High risk (> 0.65)
+    assert pp.get_risk_tier(0.651) == "High"
+    assert pp.get_risk_tier(0.85) == "High"
+    assert pp.get_risk_tier(1.0) == "High"
 
 
 # ---------------------------------------------------------
@@ -372,7 +421,7 @@ def test_preset_prediction_matches_its_label(name, loaded_artifacts):
     """A 'High risk' preset should be predicted to churn and a 'Low risk' one to stay."""
     model, feature_names, encoders = loaded_artifacts
     processed = pp.preprocess_input(cp.get_preset_values(name), encoders, feature_names)
-    _, churn_prob, _ = pp.predict_churn(model, processed)
+    _, churn_prob, _, _ = pp.predict_churn(model, processed)
     if name.startswith("High risk"):
         assert churn_prob > 0.5
     elif name.startswith("Low risk"):
