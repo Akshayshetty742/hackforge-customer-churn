@@ -216,6 +216,19 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     if errors:
         return False, errors
 
+    # Categorical validations
+    for col, allowed in VALID_CATEGORIES.items():
+        value = data[col]
+        if not isinstance(value, str):
+            errors.append(
+                f"{FIELD_LABELS[col]} must be text, got {type(value).__name__} ({value!r})."
+            )
+        elif value not in allowed:
+            errors.append(
+                f"Invalid value {value!r} for {FIELD_LABELS[col]}. "
+                f"Allowed values: {', '.join(allowed)}."
+            )
+
     # Numerical validations
     try:
         tenure = float(data["tenure"])
