@@ -250,3 +250,105 @@ def test_clean_customer_input_keeps_unconvertible_values(sample_valid_input):
     cleaned = pp.clean_customer_input(raw)
     assert cleaned["TotalCharges"] == "not a number"
     assert pp.validate_customer_input(cleaned)[0] is False
+
+
+@pytest.mark.parametrize(
+    "field, value, ok",
+    [
+        ("tenure", 0, True),
+        ("tenure", 120, True),
+        ("tenure", 121, False),
+        ("tenure", -1, False),
+        ("tenure", 12.5, False),
+        ("MonthlyCharges", 500.0, True),
+        ("MonthlyCharges", 500.01, False),
+        ("MonthlyCharges", -0.01, False),
+        ("TotalCharges", 50000.01, False),
+        ("TotalCharges", -1, False),
+    ],
+)
+def test_numeric_range_boundaries(field, value, ok):
+    """Edges of NUMERIC_RANGES are inclusive, anything outside is rejected."""
+    record = {
+        "gender": "Male", "SeniorCitizen": 0, "Partner": "No", "Dependents": "No",
+        "PhoneService": "Yes", "MultipleLines": "No", "InternetService": "DSL",
+        "OnlineSecurity": "No", "OnlineBackup": "No", "DeviceProtection": "No",
+        "TechSupport": "No", "StreamingTV": "No", "StreamingMovies": "No",
+        "Contract": "Month-to-month", "PaperlessBilling": "Yes",
+        "PaymentMethod": "Mailed check",
+        "tenure": 10, "MonthlyCharges": 50.0, "TotalCharges": 500.0,
+    }
+    record[field] = value
+    # keep TotalCharges consistent so only the range rule is being tested
+    if field in ("tenure", "MonthlyCharges") and ok:
+        record["TotalCharges"] = min(record["tenure"] * record["MonthlyCharges"], 50000.0)
+    is_valid, errors = pp.validate_customer_input(record)
+    assert is_valid is ok, errors
+
+
+def test_total_charges_inconsistent_with_tenure(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input.update({"tenure": 72, "MonthlyCharges": 20.0, "TotalCharges": 40000.0})
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("does not match MonthlyCharges x tenure" in err for err in errors)
+
+
+def test_new_customer_total_cannot_exceed_monthly(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input.update({"tenure": 0, "MonthlyCharges": 30.0, "TotalCharges": 300.0})
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("new customer" in err for err in errors)
+
+
+def test_phone_service_yes_with_no_phone_service_lines(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input.update({"PhoneService": "Yes", "MultipleLines": "No phone service"})
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("MultipleLines" in err for err in errors)
+
+
+def test_internet_addons_require_internet(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input.update({"InternetService": "No", "StreamingTV": "Yes"})
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("StreamingTV" in err for err in errors)
+
+
+def test_internet_customer_cannot_have_no_internet_addons(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input.update({"InternetService": "Fiber optic", "TechSupport": "No internet service"})
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("TechSupport" in err for err in errors)
+
+
+def test_every_dataset_row_passes_validation():
+    """The guards must never reject a real customer from the training data."""
+    df = pd.read_csv(pp.DEFAULT_DATASET_FILE)
+    df["TotalCharges"] = df["TotalCharges"].replace({" ": "0.0"}).astype(float)
+    records = df.drop(columns=["customerID", "Churn"]).to_dict("records")
+    rejected = [r for r in records if not pp.validate_customer_input(r)[0]]
+    assert rejected == []
+
+
+@pytest.mark.parametrize(
+    "field, value, message",
+    [
+        ("tenure", "abc", "Non-numeric"),
+        ("tenure", 3.5, "whole numbers"),
+        ("MonthlyCharges", True, "Boolean"),
+        ("MonthlyCharges", float("inf"), "Non-numeric"),
+        ("gender", None, "Missing value"),
+    ],
+)
+def test_preprocess_input_guards(sample_valid_input, loaded_artifacts, field, value, message):
+    """preprocess_input should fail with a clear ValueError even if validation was skipped."""
+    _, feature_names, encoders = loaded_artifacts
+    bad_input = sample_valid_input.copy()
+    bad_input[field] = value
+    with pytest.raises(ValueError, match=message):
+        pp.preprocess_input(bad_input, encoders, feature_names)
