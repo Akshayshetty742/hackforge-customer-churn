@@ -176,3 +176,77 @@ def test_customer_id_is_dropped_if_present(sample_valid_input, loaded_artifacts)
     processed = pp.preprocess_input(input_with_id, encoders, feature_names)
     assert "customerID" not in processed.columns
     assert list(processed.columns) == feature_names
+
+
+# ---------------------------------------------------------
+# Input validation & boundary guards (issue #3)
+# ---------------------------------------------------------
+
+def test_valid_categories_match_fitted_encoders(loaded_artifacts):
+    """VALID_CATEGORIES must stay in sync with the classes the encoders were fitted on."""
+    _, _, encoders = loaded_artifacts
+    for col, allowed in pp.VALID_CATEGORIES.items():
+        assert sorted(allowed) == sorted(encoders[col].classes_), col
+
+
+@pytest.mark.parametrize("blank", [None, "", "   ", float("nan")])
+def test_blank_values_reported_as_missing(sample_valid_input, blank):
+    bad_input = sample_valid_input.copy()
+    bad_input["PaymentMethod"] = blank
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("Missing required field: 'PaymentMethod'" in err for err in errors)
+
+
+def test_non_dict_input_is_rejected():
+    is_valid, errors = pp.validate_customer_input(["not", "a", "dict"])
+    assert is_valid is False
+    assert len(errors) == 1
+
+
+def test_invalid_category_value_is_rejected(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input["Contract"] = "Lifetime-Contract"
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("Invalid value 'Lifetime-Contract'" in err for err in errors)
+    # the message should tell the user what is allowed
+    assert any("Month-to-month" in err for err in errors)
+
+
+def test_category_with_wrong_type_is_rejected(sample_valid_input):
+    bad_input = sample_valid_input.copy()
+    bad_input["gender"] = 1
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any("Gender must be text" in err for err in errors)
+
+
+@pytest.mark.parametrize("field", ["tenure", "MonthlyCharges", "TotalCharges", "SeniorCitizen"])
+@pytest.mark.parametrize("bad_value", ["abc", True, float("inf"), [1]])
+def test_numeric_fields_reject_bad_types(sample_valid_input, field, bad_value):
+    bad_input = sample_valid_input.copy()
+    bad_input[field] = bad_value
+    is_valid, errors = pp.validate_customer_input(bad_input)
+    assert is_valid is False
+    assert any(field in err for err in errors)
+
+
+def test_clean_customer_input_normalises_values(sample_valid_input):
+    raw = {k: (f"  {v}  " if isinstance(v, str) else str(v)) for k, v in sample_valid_input.items()}
+    raw["customerID"] = "7590-VHVEG"
+    cleaned = pp.clean_customer_input(raw)
+
+    assert "customerID" not in cleaned
+    assert cleaned["gender"] == "Female"
+    assert cleaned["tenure"] == 1 and isinstance(cleaned["tenure"], int)
+    assert cleaned["MonthlyCharges"] == pytest.approx(29.85)
+    assert pp.validate_customer_input(cleaned) == (True, [])
+
+
+def test_clean_customer_input_keeps_unconvertible_values(sample_valid_input):
+    raw = sample_valid_input.copy()
+    raw["TotalCharges"] = "not a number"
+    cleaned = pp.clean_customer_input(raw)
+    assert cleaned["TotalCharges"] == "not a number"
+    assert pp.validate_customer_input(cleaned)[0] is False
