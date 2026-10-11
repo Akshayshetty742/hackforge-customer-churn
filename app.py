@@ -110,6 +110,19 @@ def estimate_total_charges(monthly, tenure):
     return round(float(monthly) * int(tenure), 2)
 
 
+def profile_summary(values: dict) -> pd.DataFrame:
+    """Readable two-column table (Field / Value) of a customer record."""
+    rows = []
+    for col in pp.EXPECTED_FEATURE_COLUMNS:
+        value = values.get(col)
+        if col == "SeniorCitizen":
+            value = "Yes" if value == 1 else "No"
+        elif col in ("MonthlyCharges", "TotalCharges"):
+            value = f"${float(value):,.2f}"
+        rows.append({"Field": pp.FIELD_LABELS[col], "Value": str(value)})
+    return pd.DataFrame(rows)
+
+
 def clear_form() -> None:
     """Button callback: empty every field so a customer can be typed in from scratch."""
     for col in pp.EXPECTED_FEATURE_COLUMNS:
@@ -374,6 +387,9 @@ if nav_choice == "Customer Churn Prediction":
                         "</div>",
                         unsafe_allow_html=True,
                     )
+
+                    with st.expander("Customer profile used for this prediction"):
+                        st.dataframe(profile_summary(input_dict), use_container_width=True, hide_index=True)
 
                 except ValueError as ex:
                     # raised by the preprocess_input boundary guards
