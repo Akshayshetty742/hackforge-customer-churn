@@ -467,6 +467,39 @@ def load_dataset(dataset_path: str = DEFAULT_DATASET_FILE) -> pd.DataFrame:
     return df
 
 
+def get_holdout_split(
+    df: pd.DataFrame,
+    encoders: Dict[str, Any],
+    feature_names: List[str],
+    test_size: float = 0.2,
+    random_state: int = 42,
+) -> Tuple[pd.DataFrame, pd.Series]:
+    """Encodes the cleaned dataset and returns the held-out test split (X_test, y_test).
+
+    Uses the same stratified split as 01_churn_prediction_xgboost.py
+    (test_size=0.2, random_state=42), so the model never saw these rows in training.
+    The fitted encoders are only used to transform, never refit.
+    """
+    if not 0 < test_size < 1:
+        raise ValueError(f"test_size must be between 0 and 1, got {test_size}.")
+
+    df = df.copy()
+    for col, enc in encoders.items():
+        if col in df.columns:
+            unseen = set(df[col].dropna()) - set(enc.classes_)
+            if unseen:
+                raise ValueError(f"Dataset has unseen value(s) {unseen} in column '{col}'.")
+            df[col] = enc.transform(df[col])
+
+    X = df.drop(columns=["Churn"])
+    y = df["Churn"]
+
+    _, X_test, _, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y
+    )
+    return X_test[feature_names], y_test
+
+
 def evaluate_model_on_dataset(
     dataset_path: str = DEFAULT_DATASET_FILE,
     model_path: str = DEFAULT_MODEL_FILE,
@@ -480,20 +513,9 @@ def evaluate_model_on_dataset(
     """
     model, feature_names, encoders = load_artifacts(model_path, encoder_path)
     df = load_dataset(dataset_path)
+    X_test, y_test = get_holdout_split(df, encoders, feature_names, test_size, random_state)
 
-    for col, enc in encoders.items():
-        if col in df.columns:
-            df[col] = enc.transform(df[col])
-
-    X = df.drop(columns=["Churn"])
-    y = df["Churn"]
-
-    _, X_test, _, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y
-    )
-
-    X_test_ordered = X_test[feature_names]
-    y_pred = model.predict(X_test_ordered)
+    y_pred = model.predict(X_test)
 
     acc = float(accuracy_score(y_test, y_pred))
     prec = float(precision_score(y_test, y_pred))
