@@ -13,6 +13,7 @@ import streamlit as st
 # Ensure local imports work reliably
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import customer_presets as cp
 import prediction_pipeline as pp
 
 # ---------------------------------------------------------
@@ -87,6 +88,29 @@ def get_cached_artifacts():
 
 
 # ---------------------------------------------------------
+# Form state helpers
+# ---------------------------------------------------------
+# Every form widget has a key in st.session_state, so the values survive reruns
+# (e.g. after pressing a preset button and then submitting the form).
+def field_key(col: str) -> str:
+    return f"form_{col}"
+
+
+def load_preset(name: str) -> None:
+    """Button callback: copy a preset's values into the form widgets."""
+    for col, value in cp.get_preset_values(name).items():
+        st.session_state[field_key(col)] = value
+
+
+def current_form_values() -> dict:
+    return {col: st.session_state.get(field_key(col)) for col in pp.EXPECTED_FEATURE_COLUMNS}
+
+
+if field_key("gender") not in st.session_state:
+    load_preset(cp.DEFAULT_PRESET)
+
+
+# ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
 # ---------------------------------------------------------
 st.sidebar.image(
@@ -136,164 +160,85 @@ if nav_choice == "Customer Churn Prediction":
             "are present in the project directory."
         )
     else:
-        # Pre-fill preset buttons for demonstration
         col_demo1, col_demo2, col_demo3 = st.columns([1, 1, 2])
-        preset = None
         with col_demo1:
-            if st.button("Load High-Risk Sample", use_container_width=True):
-                preset = "high"
+            st.button(
+                "Load High-Risk Sample",
+                use_container_width=True,
+                on_click=load_preset,
+                args=("High risk: new fiber customer",),
+            )
         with col_demo2:
-            if st.button("Load Low-Risk Sample", use_container_width=True):
-                preset = "low"
-
-        # Defaults
-        default_gender = "Female" if preset == "high" else "Male"
-        default_senior = 1 if preset == "high" else 0
-        default_partner = "No" if preset == "high" else "Yes"
-        default_dependents = "No" if preset == "high" else "Yes"
-        default_tenure = 1 if preset == "high" else 48
-        default_phone = "Yes"
-        default_multiple = "No" if preset == "high" else "Yes"
-        default_internet = "Fiber optic" if preset == "high" else "DSL"
-        default_security = "No" if preset == "high" else "Yes"
-        default_backup = "No" if preset == "high" else "Yes"
-        default_device = "No" if preset == "high" else "Yes"
-        default_tech = "No" if preset == "high" else "Yes"
-        default_tv = "Yes" if preset == "high" else "No"
-        default_movies = "Yes" if preset == "high" else "No"
-        default_contract = "Month-to-month" if preset == "high" else "Two year"
-        default_paperless = "Yes" if preset == "high" else "No"
-        default_payment = "Electronic check" if preset == "high" else "Bank transfer (automatic)"
-        default_monthly = 95.50 if preset == "high" else 55.20
-        default_total = 95.50 if preset == "high" else 2650.00
+            st.button(
+                "Load Low-Risk Sample",
+                use_container_width=True,
+                on_click=load_preset,
+                args=(cp.DEFAULT_PRESET,),
+            )
 
         with st.form("churn_prediction_form"):
             st.subheader("1. Customer Demographics")
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                gender = st.selectbox(
-                    "Gender",
-                    options=list(encoders["gender"].classes_),
-                    index=list(encoders["gender"].classes_).index(default_gender),
-                )
+                st.selectbox("Gender", options=pp.VALID_CATEGORIES["gender"], key=field_key("gender"))
             with c2:
-                senior = st.selectbox(
+                st.selectbox(
                     "Senior Citizen",
                     options=[0, 1],
                     format_func=lambda x: "Yes" if x == 1 else "No",
-                    index=1 if default_senior == 1 else 0,
+                    key=field_key("SeniorCitizen"),
                 )
             with c3:
-                partner = st.selectbox(
-                    "Partner",
-                    options=list(encoders["Partner"].classes_),
-                    index=list(encoders["Partner"].classes_).index(default_partner),
-                )
+                st.selectbox("Partner", options=pp.VALID_CATEGORIES["Partner"], key=field_key("Partner"))
             with c4:
-                dependents = st.selectbox(
-                    "Dependents",
-                    options=list(encoders["Dependents"].classes_),
-                    index=list(encoders["Dependents"].classes_).index(default_dependents),
+                st.selectbox(
+                    "Dependents", options=pp.VALID_CATEGORIES["Dependents"], key=field_key("Dependents")
                 )
 
             st.subheader("2. Subscribed Services")
             s1, s2, s3 = st.columns(3)
             with s1:
-                phone_service = st.selectbox(
-                    "Phone Service",
-                    options=list(encoders["PhoneService"].classes_),
-                    index=list(encoders["PhoneService"].classes_).index(default_phone),
-                )
-                multiple_lines = st.selectbox(
-                    "Multiple Lines",
-                    options=list(encoders["MultipleLines"].classes_),
-                    index=list(encoders["MultipleLines"].classes_).index(default_multiple),
-                )
-                internet_service = st.selectbox(
-                    "Internet Service",
-                    options=list(encoders["InternetService"].classes_),
-                    index=list(encoders["InternetService"].classes_).index(default_internet),
-                )
-
+                for col in ("PhoneService", "MultipleLines", "InternetService"):
+                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
             with s2:
-                online_security = st.selectbox(
-                    "Online Security",
-                    options=list(encoders["OnlineSecurity"].classes_),
-                    index=list(encoders["OnlineSecurity"].classes_).index(default_security),
-                )
-                online_backup = st.selectbox(
-                    "Online Backup",
-                    options=list(encoders["OnlineBackup"].classes_),
-                    index=list(encoders["OnlineBackup"].classes_).index(default_backup),
-                )
-                device_protection = st.selectbox(
-                    "Device Protection",
-                    options=list(encoders["DeviceProtection"].classes_),
-                    index=list(encoders["DeviceProtection"].classes_).index(default_device),
-                )
-
+                for col in ("OnlineSecurity", "OnlineBackup", "DeviceProtection"):
+                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
             with s3:
-                tech_support = st.selectbox(
-                    "Tech Support",
-                    options=list(encoders["TechSupport"].classes_),
-                    index=list(encoders["TechSupport"].classes_).index(default_tech),
-                )
-                streaming_tv = st.selectbox(
-                    "Streaming TV",
-                    options=list(encoders["StreamingTV"].classes_),
-                    index=list(encoders["StreamingTV"].classes_).index(default_tv),
-                )
-                streaming_movies = st.selectbox(
-                    "Streaming Movies",
-                    options=list(encoders["StreamingMovies"].classes_),
-                    index=list(encoders["StreamingMovies"].classes_).index(default_movies),
-                )
+                for col in ("TechSupport", "StreamingTV", "StreamingMovies"):
+                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
 
             st.subheader("3. Contract & Billing Details")
             b1, b2, b3 = st.columns(3)
             with b1:
-                contract = st.selectbox(
-                    "Contract Type",
-                    options=list(encoders["Contract"].classes_),
-                    index=list(encoders["Contract"].classes_).index(default_contract),
-                )
-                paperless = st.selectbox(
-                    "Paperless Billing",
-                    options=list(encoders["PaperlessBilling"].classes_),
-                    index=list(encoders["PaperlessBilling"].classes_).index(default_paperless),
-                )
-                payment_method = st.selectbox(
-                    "Payment Method",
-                    options=list(encoders["PaymentMethod"].classes_),
-                    index=list(encoders["PaymentMethod"].classes_).index(default_payment),
-                )
+                for col in ("Contract", "PaperlessBilling", "PaymentMethod"):
+                    st.selectbox(pp.FIELD_LABELS[col], options=pp.VALID_CATEGORIES[col], key=field_key(col))
 
             with b2:
-                tenure = st.number_input(
+                st.number_input(
                     "Tenure (Months with company)",
                     min_value=0,
                     max_value=120,
-                    value=int(default_tenure),
                     step=1,
                     help="Number of months customer has stayed with service.",
+                    key=field_key("tenure"),
                 )
-                monthly_charges = st.number_input(
+                st.number_input(
                     "Monthly Charges ($)",
                     min_value=0.0,
                     max_value=500.0,
-                    value=float(default_monthly),
                     step=0.5,
                     format="%.2f",
+                    key=field_key("MonthlyCharges"),
                 )
 
             with b3:
-                total_charges = st.number_input(
+                st.number_input(
                     "Total Charges ($)",
                     min_value=0.0,
                     max_value=50000.0,
-                    value=float(default_total),
                     step=5.0,
                     format="%.2f",
+                    key=field_key("TotalCharges"),
                 )
                 st.caption(
                     "Note: For a new customer (tenure 0 or 1), TotalCharges is typically close to MonthlyCharges."
@@ -304,28 +249,7 @@ if nav_choice == "Customer Churn Prediction":
             )
 
         if submit_prediction:
-            input_dict = {
-                "gender": gender,
-                "SeniorCitizen": senior,
-                "Partner": partner,
-                "Dependents": dependents,
-                "tenure": tenure,
-                "PhoneService": phone_service,
-                "MultipleLines": multiple_lines,
-                "InternetService": internet_service,
-                "OnlineSecurity": online_security,
-                "OnlineBackup": online_backup,
-                "DeviceProtection": device_protection,
-                "TechSupport": tech_support,
-                "StreamingTV": streaming_tv,
-                "StreamingMovies": streaming_movies,
-                "Contract": contract,
-                "PaperlessBilling": paperless,
-                "PaymentMethod": payment_method,
-                "MonthlyCharges": monthly_charges,
-                "TotalCharges": total_charges,
-            }
-
+            input_dict = current_form_values()
             input_dict = pp.clean_customer_input(input_dict)
             is_valid, validation_errors = pp.validate_customer_input(input_dict)
 
