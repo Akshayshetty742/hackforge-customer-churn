@@ -375,22 +375,32 @@ def preprocess_input(
 
     # Convert numeric fields
     if "TotalCharges" in df.columns:
-        df["TotalCharges"] = (
-            df["TotalCharges"]
-            .replace({" ": "0.0", "": "0.0"})
-            .fillna("0.0")
-            .astype(float)
-        )
-    if "MonthlyCharges" in df.columns:
-        df["MonthlyCharges"] = df["MonthlyCharges"].astype(float)
-    if "tenure" in df.columns:
-        df["tenure"] = df["tenure"].astype(int)
-    if "SeniorCitizen" in df.columns:
-        df["SeniorCitizen"] = df["SeniorCitizen"].astype(int)
+        # blank TotalCharges means a brand new customer (same rule used in training)
+        df["TotalCharges"] = df["TotalCharges"].replace({" ": "0.0", "": "0.0"}).fillna("0.0")
+
+    for col in NUMERICAL_COLUMNS:
+        if col not in df.columns:
+            continue
+        if df[col].map(lambda v: isinstance(v, (bool, np.bool_))).any():
+            raise ValueError(f"Boolean values are not valid for numeric feature '{col}'.")
+        converted = pd.to_numeric(df[col], errors="coerce")
+        bad_rows = converted.isna() | ~np.isfinite(converted.fillna(0))
+        if bad_rows.any():
+            bad_values = df.loc[bad_rows, col].tolist()
+            raise ValueError(f"Non-numeric or missing value(s) {bad_values} for feature '{col}'.")
+        df[col] = converted.astype(float)
+
+    for col in ("tenure", "SeniorCitizen"):
+        if col in df.columns:
+            if not (df[col] % 1 == 0).all():
+                raise ValueError(f"Feature '{col}' must contain whole numbers only.")
+            df[col] = df[col].astype(int)
 
     # Encode categoricals using existing fitted encoders
     for col, enc in encoders.items():
         if col in df.columns and col != "Churn":
+            if df[col].isna().any():
+                raise ValueError(f"Missing value for categorical feature '{col}'.")
             known_classes = set(enc.classes_)
             unseen = set(df[col].dropna()) - known_classes
             if unseen:
