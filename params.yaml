@@ -1,0 +1,29 @@
+prepare:
+  test_size: 0.2
+  random_state: 42
+  target_column: "Churn"
+
+model:
+  type: "all"  # Options: "all", "xgboost", "random_forest", "logistic_regression"
+
+train:
+  cv_splits: 3
+  scoring: "accuracy"
+  eval_metric: "logloss"
+  param_grid:
+    n_estimators:
+      - 100
+      - 200
+    max_depth:
+      - 3
+      - 4
+    learning_rate:
+      - 0.02
+      - 0.05
+    subsample:
+      - 0.8
+    colsample_bytree:
+      - 0.8
+
+evaluate:
+  threshold: 0.5

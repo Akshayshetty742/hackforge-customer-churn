@@ -28,3 +28,11 @@ secrets.toml
 
 # Nested extraction archive folder
 customer-churn-predictior-main/
+/WA_Fn-UseC_-Telco-Customer-Churn.csv
+/customer_churn_model_xgboost.pkl
+/encoders.pkl
+
+# MLflow tracking
+mlruns/
+mlflow.db
+
