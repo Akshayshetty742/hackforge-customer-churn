@@ -232,16 +232,22 @@ A GitHub Actions workflow is provided in `.github/workflows/ci.yml`. On every pu
 
 ## Deliverable Sprints
 
-- **Sprint 1 (Functional Core):**
-  - Interactive prediction UI with demographic, services, and billing inputs.
-  - Integration of serialized XGBoost model and fitted encoders.
-  - Input validation and sample demonstration presets.
-- **Sprint 2 (Quality & Reliability):**
-  - Standalone `prediction_pipeline.py` architecture.
-  - Comprehensive automated test suite (`test_pipeline.py`).
-  - GitHub Actions CI workflow (`.github/workflows/ci.yml`).
-  - Project documentation and developer guides.
-  - 
-  ## Deliverable 2 Verification
+- **Sprint 1 (Functional Core & Executive UI):**
+  - Bright executive light-themed interface with high-contrast slate typography (`.streamlit/config.toml`).
+  - Interactive prediction UI with demographic, service, and billing inputs.
+  - Interactive 1-click customer persona presets (High-Risk, Borderline, Loyal Family, Budget Phone-Only).
+  - Real-time XGBoost probability gauge and explainable churn risk factor attribution.
+  - 1-minute video demonstration of the functional MVP product.
 
-Automated tests are run through the Customer Churn CI Pipeline using GitHub Actions.
+- **Sprint 2 (Complete Product, Simulation & Batch Scoring):**
+  - Interactive "What-If" retention strategy simulator calculating counterfactual risk reduction and preserved annual recurring revenue.
+  - Dynamic decision threshold tuning with interactive confusion matrix and financial payoff analysis.
+  - Vectorized bulk CSV batch customer scoring with downloadable prioritized outreach export.
+  - Comprehensive 98-test automated test suite across unit, pipeline, UI, and batch modules.
+  - 2-minute video walkthrough of the complete working product and formal documentation freeze.
+
+---
+
+## Deliverable 2 Verification
+
+Automated tests are executed continuously via GitHub Actions (`.github/workflows/ci.yml`) on every pull request and push to `main`. All 98 test cases pass with 100% success rate.

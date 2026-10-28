@@ -132,27 +132,30 @@ Board configuration summary:
 
 Evidence capture: See [docs/evidence/01_github_projects_board.png](docs/evidence/01_github_projects_board.png).
 
-### 7.3 Sprint 1 Plan and Outcomes
+### 7.3 Sprint 1 Plan and Outcomes (1-Minute Video Deliverable)
 
-**Planned scope:** Sprint 1 focused on core user-facing functionality and model inference foundation:
+**Planned scope:** Sprint 1 focused on core user-facing functionality, model inference foundation, and bright executive UI:
 - Issue #1: Interactive customer profile input form with presets (5 points).
 - Issue #2: Real-time prediction engine and probability visualizer (5 points).
 - Issue #3: Input validation and boundary guards (3 points).
-- **Total sprint commitment:** 13 story points.
+- Issue #13: Sprint 1 UI: Bright Theme Redesign & One-Click Persona Preset Cards (5 points).
+- Issue #14: Sprint 1 UI: Real-Time Risk Gauge, Key Driver Breakdown & Boundary Feedback (5 points).
 
 **Outcomes and verification:**
-All three issues are completed and closed. Implementation is housed in `app.py`, `prediction_pipeline.py`, and `customer_presets.py`. Every acceptance criterion is verified by automated unit and UI-level tests in `test_app.py` and `test_pipeline.py`. Zero carryover items remained from Sprint 1.
+All Sprint 1 issues are completed and closed. Implementation delivers a bright, executive-grade light-themed interface (`.streamlit/config.toml`, `app.py`, `prediction_pipeline.py`) featuring interactive 1-click persona quick cards, real-time XGBoost probability gauge, and explainable churn driver attribution. The 1-minute video demonstration of the working MVP product was successfully recorded. Zero carryover items remained from Sprint 1.
 
-### 7.4 Sprint 2 Plan and Outcomes
+### 7.4 Sprint 2 Plan and Outcomes (2-Minute Video Deliverable & Freeze)
 
-**Planned scope:** Sprint 2 focused on quality assurance, benchmarking, and automated continuous integration:
+**Planned scope:** Sprint 2 focused on quality assurance, benchmarking, batch evaluation, and counterfactual simulation:
 - Issue #4: Model performance benchmarking and holdout evaluation (5 points).
 - Issue #5: Automated test suite for validation and prediction pipeline (5 points).
 - Issue #6: GitHub Actions CI workflow for automated verification (3 points).
-- **Total sprint commitment:** 13 story points.
+- Issue #15: Sprint 2: Interactive 'What-If' Retention Strategy Simulator & Counterfactual Analysis (5 points).
+- Issue #16: Sprint 2: Dynamic Decision Threshold Tuning, Confusion Matrix & Batch CSV Scoring (5 points).
+- Issue #17: Sprint 2: Final Verification, Documentation Freeze & Release (3 points).
 
 **Outcomes and verification:**
-All three issues are completed and closed. The test suite comprises 94 automated unit, integration, and UI tests that execute cleanly in under 30 seconds. The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on all pushes and pull requests to `main`, passing on every recorded run. Zero carryover items remained from Sprint 2.
+All Sprint 2 issues are completed and closed. Implementation adds an interactive "What-If" retention strategy simulator computing counterfactual churn reduction and revenue preservation, vectorized batch customer CSV scoring with downloadable campaign lists, and dynamic holdout threshold tuning. The automated test suite contains 98 unit, integration, and UI tests passing with 100% success rate in under 30 seconds. The development cycle is officially frozen in accordance with SE Part 2 requirements.
 
 ### 7.5 Pull-Request Workflow and Code Review
 
