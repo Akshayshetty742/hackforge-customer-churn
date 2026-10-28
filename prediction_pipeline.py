@@ -775,3 +775,42 @@ def explain_customer_risk(
         "protective_factors": protective_factors,
     }
 
+
+def score_customer_batch(
+    df: pd.DataFrame,
+    model: Any,
+    encoders: Dict[str, Any],
+    feature_names: List[str],
+    threshold: float = 0.50,
+) -> pd.DataFrame:
+    """Vectorized scoring of customer records returning probabilities and risk tiers."""
+    clean_df = df.copy()
+    customer_ids = (
+        clean_df["customerID"].copy()
+        if "customerID" in clean_df.columns
+        else [f"CUST-{i+1:04d}" for i in range(len(clean_df))]
+    )
+    if "customerID" in clean_df.columns:
+        clean_df = clean_df.drop(columns=["customerID"])
+    if "Churn" in clean_df.columns:
+        actual_churn = clean_df["Churn"].copy()
+        clean_df = clean_df.drop(columns=["Churn"])
+    else:
+        actual_churn = None
+
+    processed_df = preprocess_input(clean_df, encoders, feature_names)
+    probs = model.predict_proba(processed_df)[:, 1]
+    preds = (probs >= threshold).astype(int)
+
+    result_df = df.copy()
+    if "customerID" not in result_df.columns:
+        result_df.insert(0, "customerID", customer_ids)
+    result_df["Churn_Probability"] = np.round(probs * 100, 1)
+    result_df["Predicted_Class"] = np.where(preds == 1, "Churn", "Stay")
+    result_df["Risk_Tier"] = [get_risk_tier(p) for p in probs]
+    if actual_churn is not None:
+        result_df["Actual_Churn"] = actual_churn
+
+    return result_df.sort_values(by="Churn_Probability", ascending=False)
+
+

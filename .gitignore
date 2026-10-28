@@ -28,3 +28,6 @@ secrets.toml
 
 # Nested extraction archive folder
 customer-churn-predictior-main/
+
+# Word documents / rubrics
+*.docx

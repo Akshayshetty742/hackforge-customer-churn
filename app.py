@@ -262,6 +262,17 @@ st.markdown(
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
+    
+    /* Simulator & Counterfactual styling */
+    .sim-card {
+        background-color: #ffffff;
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
+        padding: 18px;
+        margin-top: 14px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.04);
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -543,7 +554,7 @@ def confusion_matrix_takeaways(cm) -> str:
 # ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
 # ---------------------------------------------------------
-st.sidebar.markdown("<div class='sprint-badge'>Sprint 1: Active MVP Demo</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div class='sprint-badge'>Sprint 2: Complete System Demo</div>", unsafe_allow_html=True)
 st.sidebar.image(
     "https://img.icons8.com/fluency/96/combo-chart.png",
     width=56,
@@ -553,7 +564,7 @@ st.sidebar.caption("Software Engineering — Deliverable Part 2")
 
 nav_choice = st.sidebar.radio(
     "Navigation",
-    options=["Customer Churn Prediction", "Model Evaluation", "About the Project"],
+    options=["Customer Churn Prediction", "Batch Customer Scoring", "Model Evaluation", "About the Project"],
     index=0,
 )
 
@@ -916,6 +927,114 @@ if nav_choice == "Customer Churn Prediction":
                         else:
                             st.info("No strong retention anchors identified; customer is uncommitted.")
 
+                    # -------------------------------------------------
+                    # SPRINT 2: "What-If" Retention Strategy Simulator
+                    # -------------------------------------------------
+                    st.write("")
+                    st.subheader("🧪 'What-If' Retention Strategy Simulator")
+                    st.caption(
+                        "Test counterfactual interventions in real-time. "
+                        "Simulate contract extensions, security/support bundles, or billing discounts "
+                        "to see immediate impact on predicted churn probability and retained revenue."
+                    )
+
+                    with st.container():
+                        sim_c1, sim_c2, sim_c3 = st.columns(3)
+                        with sim_c1:
+                            sim_contract = st.selectbox(
+                                "Simulate Contract Upgrade",
+                                options=["Keep Current", "One year", "Two year"],
+                                index=1 if input_dict.get("Contract") == "Month-to-month" else 0,
+                                help="Long-term contracts are the single most powerful driver of customer retention (39.1% global feature importance).",
+                            )
+                        with sim_c2:
+                            has_internet = input_dict.get("InternetService") != "No"
+                            sim_support = st.selectbox(
+                                "Simulate Support & Security Bundle",
+                                options=["Keep Current", "Add Tech Support & Security", "Remove Add-ons"],
+                                index=1 if (has_internet and input_dict.get("TechSupport") == "No") else 0,
+                                help="Adds Online Security and Tech Support add-ons to enhance service stickiness.",
+                            )
+                        with sim_c3:
+                            sim_discount = st.slider(
+                                "Simulate Monthly Promotional Discount ($)",
+                                min_value=0.0,
+                                max_value=30.0,
+                                value=10.0 if pred_class == 1 else 0.0,
+                                step=2.5,
+                                help="Simulate reducing monthly charges to test price elasticity.",
+                            )
+
+                        # Build counterfactual record
+                        cf_dict = dict(input_dict)
+                        if sim_contract != "Keep Current":
+                            cf_dict["Contract"] = sim_contract
+                        if sim_support == "Add Tech Support & Security" and has_internet:
+                            cf_dict["OnlineSecurity"] = "Yes"
+                            cf_dict["TechSupport"] = "Yes"
+                        elif sim_support == "Remove Add-ons" and has_internet:
+                            cf_dict["OnlineSecurity"] = "No"
+                            cf_dict["TechSupport"] = "No"
+
+                        if sim_discount > 0:
+                            orig_monthly = float(input_dict.get("MonthlyCharges", 0))
+                            cf_dict["MonthlyCharges"] = max(18.25, round(orig_monthly - sim_discount, 2))
+                            orig_tenure = max(1, int(input_dict.get("tenure", 1)))
+                            cf_dict["TotalCharges"] = round(cf_dict["MonthlyCharges"] * orig_tenure, 2)
+
+                        try:
+                            cf_processed = pp.preprocess_input(cf_dict, encoders, feature_names)
+                            cf_pred, cf_prob, cf_prob_dict, cf_tier = pp.predict_churn(
+                                model, cf_processed, threshold=decision_threshold
+                            )
+
+                            risk_delta = cf_prob - churn_prob
+                            risk_reduction_pct = (churn_prob - cf_prob) / churn_prob * 100 if churn_prob > 0 else 0
+                            orig_annual_rev = float(input_dict.get("MonthlyCharges", 0)) * 12
+                            sim_annual_rev = float(cf_dict.get("MonthlyCharges", 0)) * 12
+
+                            st.markdown("##### 📊 Counterfactual Simulation Outcome")
+                            sc1, sc2, sc3, sc4 = st.columns(4)
+                            sc1.metric(
+                                "Simulated Churn Risk",
+                                f"{cf_prob * 100:.1f}%",
+                                delta=f"{risk_delta * 100:+.1f}% vs Baseline",
+                                delta_color="inverse",
+                            )
+                            sc2.metric(
+                                "Relative Risk Drop",
+                                f"{risk_reduction_pct:.1f}%",
+                                delta=f"-{abs(risk_delta)*100:.1f}% Abs Drop" if risk_delta < 0 else None,
+                            )
+                            sc3.metric(
+                                "Simulated Risk Tier",
+                                f"{cf_tier} Risk",
+                                delta="Retention Safety" if (pred_class == 1 and cf_pred == 0) else None,
+                            )
+                            sc4.metric(
+                                "Annual Recurring Revenue",
+                                f"${sim_annual_rev:,.0f} / yr",
+                                delta=f"-${(orig_annual_rev - sim_annual_rev):,.0f} Discount" if sim_discount > 0 else "Full Retention Value",
+                            )
+
+                            if pred_class == 1 and cf_pred == 0:
+                                st.success(
+                                    f"🎉 **Retention Strategy Successful!** Applying these intervention levers drops the customer's churn risk "
+                                    f"from **{churn_prob * 100:.1f}%** down to **{cf_prob * 100:.1f}%** ({risk_reduction_pct:.1f}% risk reduction). "
+                                    f"The account is successfully converted from **High Risk** to **{cf_tier} Risk**, preserving **${sim_annual_rev:,.2f}/yr** in recurring revenue!",
+                                    icon="✅",
+                                )
+                            elif risk_delta < 0:
+                                st.info(
+                                    f"📉 **Risk Reduced:** Churn probability reduced from **{churn_prob * 100:.1f}%** to **{cf_prob * 100:.1f}%** "
+                                    f"({risk_reduction_pct:.1f}% reduction). Consider coupling with automated payment billing for greater retention.",
+                                    icon="💡",
+                                )
+                            else:
+                                st.caption("No retention levers applied yet. Adjust the options above to simulate interventions.")
+                        except Exception as e:
+                            st.warning(f"Could not compute counterfactual simulation: {e}")
+
                     st.markdown(
                         "<div class='alert-disclaimer'>"
                         "<strong>Notice:</strong> Machine learning predictions represent statistical estimates "
@@ -937,7 +1056,135 @@ if nav_choice == "Customer Churn Prediction":
 
 
 # ---------------------------------------------------------
-# SECTION B: Model Evaluation
+# SECTION B: Batch Customer Scoring (Sprint 2 Deliverable)
+# ---------------------------------------------------------
+elif nav_choice == "Batch Customer Scoring":
+    st.header("Batch Customer Scoring & Retention Export")
+    st.write(
+        "Evaluate customer portfolios in bulk using the tuned **XGBoost Classifier** inference engine. "
+        "Upload customer CSV records or evaluate holdout evaluation samples to generate prioritized retention campaign targets."
+    )
+
+    if not artifacts_loaded:
+        st.error(f"Cannot run batch scoring: {load_error}")
+    else:
+        st.subheader("1. Data Source Selection")
+        data_source = st.radio(
+            "Select Input Source",
+            options=["Sample Holdout Evaluation Batch (100 Telco Customers)", "Upload Custom Customer CSV"],
+            horizontal=True,
+        )
+
+        batch_df = None
+        if data_source == "Sample Holdout Evaluation Batch (100 Telco Customers)":
+            try:
+                raw_df = pp.load_dataset()
+                batch_df = raw_df.sample(n=min(100, len(raw_df)), random_state=42).copy()
+                st.caption(f"Loaded {len(batch_df)} verified customer accounts from holdout dataset.")
+            except Exception as e:
+                st.error(f"Could not load sample dataset: {e}")
+        else:
+            uploaded_file = st.file_uploader("Upload Customer CSV File", type=["csv"])
+            if uploaded_file is not None:
+                try:
+                    batch_df = pd.read_csv(uploaded_file)
+                    st.success(f"Uploaded CSV with {len(batch_df)} records.")
+                except Exception as e:
+                    st.error(f"Error parsing uploaded CSV: {e}")
+
+        if batch_df is not None:
+            st.write("")
+            st.subheader("2. Batch Scoring Configuration")
+            b_thresh_col, b_btn_col = st.columns([3, 1], vertical_alignment="bottom")
+            with b_thresh_col:
+                batch_threshold = st.slider(
+                    "Batch Decision Threshold (P(Churn) >= Threshold -> Churn)",
+                    min_value=0.20,
+                    max_value=0.80,
+                    value=0.50,
+                    step=0.05,
+                    key="batch_scoring_threshold",
+                )
+            with b_btn_col:
+                run_batch = st.button("Run Batch Scoring", type="primary", use_container_width=True)
+
+            if run_batch or "last_batch_results" in st.session_state:
+                if run_batch:
+                    with st.spinner("Executing vectorized inference across customer portfolio..."):
+                        try:
+                            scored_results = pp.score_customer_batch(
+                                batch_df, model, encoders, feature_names, threshold=batch_threshold
+                            )
+                            st.session_state["last_batch_results"] = scored_results
+                        except Exception as e:
+                            st.error(f"Batch inference failed: {e}")
+                            st.session_state["last_batch_results"] = None
+
+                scored_df = st.session_state.get("last_batch_results")
+                if scored_df is not None and not scored_df.empty:
+                    st.write("")
+                    st.subheader("3. Portfolio Risk Summary & Prioritization")
+                    total_customers = len(scored_df)
+                    high_risk_count = int((scored_df["Risk_Tier"] == "High").sum())
+                    mod_risk_count = int((scored_df["Risk_Tier"] == "Moderate").sum())
+                    low_risk_count = int((scored_df["Risk_Tier"] == "Low").sum())
+                    pred_churners = int((scored_df["Predicted_Class"] == "Churn").sum())
+
+                    k1, k2, k3, k4 = st.columns(4)
+                    k1.metric("Total Scored", f"{total_customers:,}")
+                    k2.metric("Critical High Risk (🔴)", f"{high_risk_count} ({high_risk_count/total_customers*100:.1f}%)")
+                    k3.metric("Moderate Risk (🟡)", f"{mod_risk_count} ({mod_risk_count/total_customers*100:.1f}%)")
+                    k4.metric("Low Risk / Loyal (🟢)", f"{low_risk_count} ({low_risk_count/total_customers*100:.1f}%)")
+
+                    # Risk distribution chart
+                    dist_col, action_col = st.columns([1, 1])
+                    with dist_col:
+                        st.write("**Risk Tier Distribution:**")
+                        risk_summary = pd.DataFrame({
+                            "Risk Tier": ["High Risk (>65%)", "Moderate Risk (35-65%)", "Low Risk (<35%)"],
+                            "Customers": [high_risk_count, mod_risk_count, low_risk_count],
+                        })
+                        chart = alt.Chart(risk_summary).mark_bar(cornerRadius=6).encode(
+                            x=alt.X("Risk Tier:N", sort=None, title=None),
+                            y=alt.Y("Customers:Q", title="Account Count"),
+                            color=alt.Color("Risk Tier:N", scale=alt.Scale(
+                                domain=["High Risk (>65%)", "Moderate Risk (35-65%)", "Low Risk (<35%)"],
+                                range=["#ef4444", "#f59e0b", "#10b981"]
+                            ), legend=None)
+                        ).properties(height=220)
+                        st.altair_chart(chart, use_container_width=True)
+
+                    with action_col:
+                        st.write("**Executive Action Plan:**")
+                        st.markdown(
+                            f"""
+                            - **Immediate Intervention Target:** `{high_risk_count}` accounts flagged as Critical Churn Hazard. Assign to Senior Account Execs for discount outreach.
+                            - **Automated Check-in Pool:** `{mod_risk_count}` accounts displaying moderate drift. Enroll in automated re-engagement workflows.
+                            - **Stable Base:** `{low_risk_count}` loyal accounts identified for cross-sell and loyalty rewards.
+                            """
+                        )
+                        # Export Button
+                        csv_data = scored_df.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            label="📥 Download Priority Retention Outreach CSV",
+                            data=csv_data,
+                            file_name="prioritized_retention_campaign_targets.csv",
+                            mime="text/csv",
+                            type="primary",
+                            use_container_width=True,
+                        )
+
+                    st.write("")
+                    st.write("**Customer Risk Evaluation Table (Sorted by Highest Churn Risk):**")
+                    display_cols = ["customerID", "Churn_Probability", "Predicted_Class", "Risk_Tier", "Contract", "tenure", "MonthlyCharges", "PaymentMethod"]
+                    if "Actual_Churn" in scored_df.columns:
+                        display_cols.append("Actual_Churn")
+                    available_cols = [c for c in display_cols if c in scored_df.columns]
+                    st.dataframe(scored_df[available_cols], use_container_width=True, hide_index=True)
+
+
+# ---------------------------------------------------------
+# SECTION C: Model Evaluation
 # ---------------------------------------------------------
 elif nav_choice == "Model Evaluation":
     st.header("Model Evaluation & Performance Benchmarks")
