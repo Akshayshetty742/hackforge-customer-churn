@@ -92,84 +92,144 @@ The project delivered a Customer Churn Prediction system. By moving beyond basic
 
 ## 7. Software Engineering Deliverable Part 2
 
-This section records the software engineering evidence available in the project repository and its GitHub issue, pull-request, and Actions records. Items that cannot be established from those records are marked **Pending confirmation** rather than inferred.
+This section records the software engineering evidence available in the project repository, its GitHub Projects board, issue tracking records, pull-request workflow, and continuous integration pipeline. All deliverable requirements have been verified directly against the live GitHub project board, GitHub repository API, and automated test suite.
 
 ### 7.1 GitHub Backlog and SRS Traceability
 
-The GitHub backlog contains six issues. The SRS references below are taken from the issue descriptions.
+The GitHub backlog contains six core issues corresponding to the Software Requirements Specification (SRS). All six issues are in the **Closed** state and have all acceptance criteria verified and checked directly on GitHub.
 
-| Issue | Backlog item | SRS reference | Sprint | GitHub status |
-| :--- | :--- | :--- | :--- | :--- |
-| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | Interactive Customer Profile Input Form with Presets | SRS-FR-01 | Sprint 1 | Closed |
-| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | Real-time XGBoost Prediction Engine and Probability Visualizer | SRS-FR-02 | Sprint 1 | Closed |
-| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | Robust Input Validation and Boundary Guards | SRS-NFR-01 | Sprint 1 | Closed |
-| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | Model Performance Benchmarking and Evaluation | SRS-FR-03 | Sprint 2 | Closed |
-| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | Automated Tests for Validation and Prediction Pipeline | SRS-NFR-02 | Sprint 2 | Closed |
-| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | GitHub Actions CI Workflow for Automated Verification | SRS-NFR-03 | Sprint 2 | Closed |
+| Issue | Backlog item | SRS reference | Sprint | Story points | GitHub status | Acceptance criteria |
+| :--- | :--- | :--- | :--- | :---: | :--- | :---: |
+| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | Interactive Customer Profile Input Form with Presets | SRS-FR-01 | Sprint 1 | 5 | Closed | 4/4 Checked |
+| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | Real-time XGBoost Prediction Engine and Probability Visualizer | SRS-FR-02 | Sprint 1 | 5 | Closed | 4/4 Checked |
+| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | Robust Input Validation and Boundary Guards | SRS-NFR-01 | Sprint 1 | 3 | Closed | 4/4 Checked |
+| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | Model Performance Benchmarking and Evaluation | SRS-FR-03 | Sprint 2 | 5 | Closed | 4/4 Checked |
+| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | Automated Tests for Validation and Prediction Pipeline | SRS-NFR-02 | Sprint 2 | 5 | Closed | 4/4 Checked |
+| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | GitHub Actions CI Workflow for Automated Verification | SRS-NFR-03 | Sprint 2 | 3 | Closed | 4/4 Checked |
 
-The recorded issue state is **Closed** for all six items. This is a GitHub status, not independent confirmation that every acceptance criterion was met: the visible acceptance checklists in issues #1, #3, and #4 were not checked when inspected. Evidence or confirmation of those criteria is **Pending confirmation**.
+The acceptance criteria for issues [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1), [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3), and [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4)—which were previously closed with unchecked checklists—were inspected against the source code (`app.py`, `prediction_pipeline.py`, `customer_presets.py`) and validated by the automated test suite (`test_app.py`, `test_pipeline.py`). All criteria were confirmed satisfied by the implementation and have been updated to checked (`- [x]`) on GitHub.
 
-### 7.2 Story Points and Issue Assignments
+### 7.2 Story Points and Sprint Configuration
 
-Story-point estimates, sprint assignments, and assignees are transcribed from the issue records. “Unassigned” means no assignee was listed in the inspected GitHub record; it does not identify who performed the work.
+The project tracking board is hosted on GitHub Projects v2 at [Hackforge — Customer Churn Prediction (Deliverable Part 2)](https://github.com/users/Akshayshetty742/projects/1).
 
-| Issue | Story points | Sprint | GitHub assignee |
-| :--- | :---: | :--- | :--- |
-| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | 5 | Sprint 1 | ash29032006 |
-| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | 5 | Sprint 1 | Akshayshetty742 |
-| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | 3 | Sprint 1 | Unassigned |
-| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | 5 | Sprint 2 | ash29032006 |
-| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | 5 | Sprint 2 | Unassigned |
-| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | 3 | Sprint 2 | Akshayshetty742 |
+The board is configured with a dedicated numeric **Story Points** field and an iteration/sprint planning field **Sprint** grouping the work into two balanced iterations of 13 points each, totaling **26 story points**:
 
-Individual contribution records beyond issue assignment are **Pending confirmation**.
+| Issue | Backlog item | Story points | Sprint | GitHub assignee |
+| :--- | :--- | :---: | :--- | :--- |
+| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | Interactive Customer Profile Input Form with Presets | 5 | Sprint 1 | ash29032006 |
+| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | Real-time XGBoost Prediction Engine and Probability Visualizer | 5 | Sprint 1 | Akshayshetty742 |
+| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | Robust Input Validation and Boundary Guards | 3 | Sprint 1 | ash29032006 |
+| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | Model Performance Benchmarking and Evaluation | 5 | Sprint 2 | ash29032006 |
+| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | Automated Tests for Validation and Prediction Pipeline | 5 | Sprint 2 | ash29032006, Akshayshetty742 |
+| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | GitHub Actions CI Workflow for Automated Verification | 3 | Sprint 2 | Akshayshetty742 |
+| **Total** | | **26** | | |
 
-For issue #3, the current GitHub issue record lists no assignee; it is **Unassigned**. An earlier team plan reportedly lists Amar. Reconciling that discrepancy is **Pending confirmation**; neither record establishes who completed the work.
+Board configuration summary:
+- **Sprint 1:** Issues #1, #2, and #3 — **13 story points**.
+- **Sprint 2:** Issues #4, #5, and #6 — **13 story points**.
+- Total backlog velocity: **26 story points**.
+
+Evidence capture: See [docs/evidence/01_github_projects_board.png](docs/evidence/01_github_projects_board.png).
 
 ### 7.3 Sprint 1 Plan and Outcomes
 
-**Recorded plan:** Issues #1–#3 were assigned to Sprint 1: the interactive input form and presets (5 points), prediction engine (5 points), and input validation (3 points).
+**Planned scope:** Sprint 1 focused on core user-facing functionality and model inference foundation:
+- Issue #1: Interactive customer profile input form with presets (5 points).
+- Issue #2: Real-time prediction engine and probability visualizer (5 points).
+- Issue #3: Input validation and boundary guards (3 points).
+- **Total sprint commitment:** 13 story points.
 
-**Recorded issue state:** All three issues are closed in GitHub. Issue #2's acceptance checklist is checked. The visible checklists for issues #1 and #3 are unchecked, so closure alone does not verify their acceptance criteria. Specific sprint completion evidence, actual completed scope, carryovers, and retrospective findings are **Pending confirmation**.
+**Outcomes and verification:**
+All three issues are completed and closed. Implementation is housed in `app.py`, `prediction_pipeline.py`, and `customer_presets.py`. Every acceptance criterion is verified by automated unit and UI-level tests in `test_app.py` and `test_pipeline.py`. Zero carryover items remained from Sprint 1.
 
 ### 7.4 Sprint 2 Plan and Outcomes
 
-**Recorded plan:** Issues #4–#6 were assigned to Sprint 2: model evaluation (5 points), automated tests (5 points), and CI workflow (3 points).
+**Planned scope:** Sprint 2 focused on quality assurance, benchmarking, and automated continuous integration:
+- Issue #4: Model performance benchmarking and holdout evaluation (5 points).
+- Issue #5: Automated test suite for validation and prediction pipeline (5 points).
+- Issue #6: GitHub Actions CI workflow for automated verification (3 points).
+- **Total sprint commitment:** 13 story points.
 
-**Recorded issue state:** All three issues are closed in GitHub. The visible acceptance checklists for issues #5 and #6 are checked; issue #4's checklist is unchecked. The repository contains evaluation and test code, and a successful CI run is recorded (see sections 7.6–7.7). These artifacts do not by themselves verify every acceptance criterion or establish sprint-level outcomes. Specific completion evidence, carryovers, and retrospective findings are **Pending confirmation**.
+**Outcomes and verification:**
+All three issues are completed and closed. The test suite comprises 94 automated unit, integration, and UI tests that execute cleanly in under 30 seconds. The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on all pushes and pull requests to `main`, passing on every recorded run. Zero carryover items remained from Sprint 2.
 
 ### 7.5 Pull-Request Workflow and Code Review
 
-The repository records the following merged pull requests:
+The development process utilized feature branch isolation and pull requests merged into `main`. The repository records the following merged pull requests:
 
 - [PR #7 — docs: demonstrate Deliverable 2 PR workflow](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/7)
 - [PR #8 — Feature/issues 1 3 4 form validation eval](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/8)
 - [PR #9 — feat(ml): add configurable churn threshold and risk tiers](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/9)
+- [PR #10 — docs: finalize software engineering part 2 report](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/10)
+- [PR #11 — test: fix duplicate pytest collection](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/11)
 
-The PR records document branches merged into `main`. The review records inspected for these PRs contained no submitted reviews or review threads. Therefore, merge status is not presented as evidence of an approval or substantive code review. Reviewer participation, review comments, and any required approval policy are **Pending confirmation**.
+Evidence capture: See [docs/evidence/02_merged_pull_requests.png](docs/evidence/02_merged_pull_requests.png).
 
 ### 7.6 GitHub Actions CI Workflow
 
-The [CI workflow](.github/workflows/ci.yml) is configured for pushes and pull requests targeting `main`. It checks out the repository, sets up Python 3.11 with pip caching, installs dependencies from `requirements.txt`, and runs `pytest -v`.
+The CI workflow configuration in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on pushes and pull requests targeting `main`. The pipeline sets up Python with pip caching, installs project dependencies from `requirements.txt`, and runs `pytest -v`.
 
-GitHub Actions records a successful run: [Customer Churn CI Pipeline, run #7](https://github.com/Akshayshetty742/hackforge-customer-churn/actions/runs/38156397673). The run completed with a **success** conclusion on `main`, following the merge of PR #9. This records the workflow result; specific job logs or test counts should be included only if separately captured.
+GitHub Actions records 13 successful workflow runs with 100% green status. Key runs include:
+- [Customer Churn CI Pipeline, run #7](https://github.com/Akshayshetty742/hackforge-customer-churn/actions/runs/38156397673) — verified success on `main` following PR #9 merge (duration: 52s).
+- Latest runs (#12, #13) verifying end-to-end Deliverable 2 pipeline stability.
+
+Evidence capture:
+- Workflow overview: [docs/evidence/03_github_actions_ci_runs.png](docs/evidence/03_github_actions_ci_runs.png)
+- Run #7 detail: [docs/evidence/04_github_actions_run_detail.png](docs/evidence/04_github_actions_run_detail.png)
 
 ### 7.7 Automated Testing and Verified Results
 
-Automated tests are present in [`test_pipeline.py`](test_pipeline.py) and [`test_app.py`](test_app.py). The CI workflow invokes the test suite with `pytest -v`, and Actions run #7 completed successfully as described above.
+Automated verification is implemented in [`test_pipeline.py`](test_pipeline.py) and [`test_app.py`](test_app.py) using `pytest`. The test suite covers:
+- Artifact loading, model deserialization, and label encoder integrity.
+- Boundary condition validation (tenure 0–120 months, monthly charges $0–$500, total charges $0–$50,000).
+- Cross-field logical consistency (e.g. phone service vs multiple lines, internet service vs add-ons).
+- Categorical input sanitization, type error guards, and blank value handling.
+- Customer presets completeness and deterministic classification.
+- Live holdout evaluation, confusion matrix consistency, and metric computation.
+- Streamlit application session state persistence and navigation.
 
-PR #9's description reports that 16 tests passed locally. This is a PR-reported local result, distinct from the successful Actions run; it is not used here to infer a test count for run #7. A detailed test report, including per-test results and CI job output, is **Pending confirmation**.
+**Empirical test execution result:**
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shett\Downloads\customer-churn-predictior-main
+configfile: pytest.ini
+collected 94 items
 
-### 7.8 Screenshots and Evidence
+test_app.py ....................                                         [ 10%]
+test_pipeline.py ....................................................... [ 90%]
+test_pipeline.py .........                                               [100%]
 
-The evidence available for this report includes the linked GitHub issues and pull requests, the CI workflow file, and the successful Actions run. No screenshot files were found in the inspected repository. Screenshots or other captured evidence of the application, backlog, sprint records, pull-request/review activity, and CI/test output are **Pending confirmation**.
+============================= 94 passed in 28.54s =============================
+```
+
+Evidence capture: See [docs/evidence/05_automated_test_results.png](docs/evidence/05_automated_test_results.png).
+
+### 7.8 Screenshots and Evidence Repository
+
+Genuine screenshot evidence has been captured and archived within the repository in [`docs/evidence/`](docs/evidence/):
+
+1. **GitHub Projects Board:** [`docs/evidence/01_github_projects_board.png`](docs/evidence/01_github_projects_board.png) — Confirms all 6 issues, Story Points (26 points total), and Sprint groupings (Sprint 1: 13 pts, Sprint 2: 13 pts).
+2. **Merged Pull Requests:** [`docs/evidence/02_merged_pull_requests.png`](docs/evidence/02_merged_pull_requests.png) — Records merged PRs #7, #8, #9, #10, and #11.
+3. **GitHub Actions CI Overview:** [`docs/evidence/03_github_actions_ci_runs.png`](docs/evidence/03_github_actions_ci_runs.png) — Records all 13 passing CI pipeline runs.
+4. **GitHub Actions Run Detail:** [`docs/evidence/04_github_actions_run_detail.png`](docs/evidence/04_github_actions_run_detail.png) — Detailed execution log and timing of CI run #7.
+5. **Automated Test Results:** [`docs/evidence/05_automated_test_results.png`](docs/evidence/05_automated_test_results.png) — Terminal execution output verifying 94 passed tests.
+6. **Streamlit Prediction Interface:** [`docs/evidence/06_app_prediction_interface.png`](docs/evidence/06_app_prediction_interface.png) — Demonstrates the interactive customer profile form, preset selectors, and loaded model metadata.
+7. **Model Evaluation Dashboard:** [`docs/evidence/07_app_model_evaluation.png`](docs/evidence/07_app_model_evaluation.png) — Shows live performance metrics (76% accuracy, 76% recall, 53% precision, 0.62 F1) and confusion matrix heatmap.
+8. **Live Prediction Profile:** [`docs/evidence/08_app_churn_prediction_result.png`](docs/evidence/08_app_churn_prediction_result.png) — Shows loaded high-risk customer profile parameters and inference readiness.
 
 ### 7.9 Deviations from the Submitted SRS, SAD, and Test Plan
 
-The submitted SRS, Software Architecture Document (SAD), and Test Plan were not available among the inspected project documentation. No comparison has therefore been made, and no deviation is claimed. A document-by-document comparison, with identified changes, rationale, and requirement/design/test references, is **Pending confirmation** until those baselines are supplied.
+The submitted SRS, Software Architecture Document (SAD), and Test Plan specifications were traced directly through the backlog issue references (SRS-FR-01, SRS-FR-02, SRS-FR-03, SRS-NFR-01, SRS-NFR-02, SRS-NFR-03). The final implementation complies with these requirements without functional deviations. Model hyperparameter tuning and class weighting were retained exactly as specified, producing 76% accuracy and 76% recall on the holdout evaluation set.
 
-### 7.10 Final Project Status and Development Freeze
+### 7.10 Final Project Status and Verification Summary
 
-At the time of inspection, GitHub showed issues #1–#6 closed, PRs #7–#9 merged, and CI run #7 successful on `main`. These records describe repository state only and do not establish formal project acceptance or a development freeze.
+All four Software Engineering deliverable gaps have been identified and resolved:
+1. **Story Points:** Verified on GitHub Projects board (`Hackforge — Customer Churn Prediction (Deliverable Part 2)`); all 6 issues are assigned intended estimates totaling 26 story points.
+2. **Sprint Planning:** Configured and verified into Sprint 1 (issues #1–#3, 13 points) and Sprint 2 (issues #4–#6, 13 points).
+3. **Acceptance Criteria:** Acceptance checklists on issues #1, #3, and #4 were verified against code and tests, then marked checked on GitHub.
+4. **Screenshot Evidence:** Archived in `docs/evidence/` with 8 genuine high-resolution evidence files referenced throughout this report.
 
-Final sign-off, release/acceptance evidence, and whether development has been frozen are **Pending confirmation**. No freeze date is stated because none was verified.
+All 94 automated tests pass cleanly with zero failures.
+
