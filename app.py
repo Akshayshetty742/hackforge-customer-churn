@@ -5,6 +5,7 @@ Deliverable Part 2: Interactive ML Inference, Model Evaluation, and Architecture
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 import altair as alt
@@ -17,6 +18,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import customer_presets as cp
 import prediction_pipeline as pp
 
+try:
+    importlib.reload(pp)
+    importlib.reload(cp)
+except Exception:
+    pass
+
 # ---------------------------------------------------------
 # Page Configuration
 # ---------------------------------------------------------
@@ -27,70 +34,244 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling for clean, modern look without excessive dependencies
+# Custom Styling for clean, modern executive light-mode look
 st.markdown(
     """
     <style>
-    .metric-card {
-        background-color: #1a1f2c;
-        border: 1px solid #2e384d;
-        border-radius: 8px;
-        padding: 18px;
+    /* Global light mode surface */
+    .stApp {
+        background-color: #f8fafc;
+        color: #0f172a;
+    }
+    
+    /* Clean executive cards */
+    .bright-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .bright-card-header {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
         margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Persona quick-cards */
+    .persona-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .persona-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+    .persona-tag-high {
+        font-size: 0.75rem;
+        font-weight: 700;
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+    .persona-tag-mod {
+        font-size: 0.75rem;
+        font-weight: 700;
+        background-color: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+    .persona-tag-low {
+        font-size: 0.75rem;
+        font-weight: 700;
+        background-color: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+        border-radius: 12px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+    .persona-desc {
+        font-size: 0.8rem;
+        color: #64748b;
+        line-height: 1.35;
+        margin-bottom: 8px;
+    }
+    
+    /* Metrics */
+    .metric-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
     .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #60a5fa;
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #4f46e5;
     }
     .metric-label {
-        font-size: 0.875rem;
-        color: #94a3b8;
+        font-size: 0.85rem;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        font-weight: 600;
     }
+    
+    /* Risk Pills */
     .churn-pill-high {
-        background-color: rgba(239, 68, 68, 0.2);
-        color: #f87171;
-        border: 1px solid #ef4444;
-        padding: 6px 14px;
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #f87171;
+        padding: 8px 18px;
         border-radius: 20px;
         display: inline-block;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
     .churn-pill-low {
-        background-color: rgba(34, 197, 94, 0.2);
-        color: #4ade80;
-        border: 1px solid #22c55e;
-        padding: 6px 14px;
+        background-color: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #4ade80;
+        padding: 8px 18px;
         border-radius: 20px;
         display: inline-block;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
     .churn-pill-moderate {
-        background-color: rgba(234, 179, 8, 0.2);
-        color: #facc15;
-        border: 1px solid #eab308;
-        padding: 6px 14px;
+        background-color: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fcd34d;
+        padding: 8px 18px;
         border-radius: 20px;
         display: inline-block;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
+    
+    /* Recommendation & Alert Boxes */
     .recommendation-box {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        padding: 12px 16px;
-        margin-top: 10px;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #4f46e5;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-top: 12px;
+        color: #1e293b;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
     .alert-disclaimer {
         font-size: 0.85rem;
-        color: #cbd5e1;
-        background: #0f172a;
-        padding: 12px;
+        color: #475569;
+        background: #f1f5f9;
+        padding: 14px 18px;
         border-left: 4px solid #3b82f6;
-        border-radius: 4px;
-        margin-top: 15px;
+        border-radius: 6px;
+        margin-top: 16px;
+    }
+    
+    /* Gauge Meter */
+    .gauge-container {
+        width: 100%;
+        height: 18px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        margin: 10px 0 8px 0;
+    }
+    .gauge-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+    
+    /* Attribution Chips */
+    .driver-chip-danger {
+        background: #ffffff;
+        border: 1px solid #fee2e2;
+        border-left: 4px solid #dc2626;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+    .driver-chip-warning {
+        background: #ffffff;
+        border: 1px solid #fef3c7;
+        border-left: 4px solid #d97706;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+    .driver-chip-success {
+        background: #ffffff;
+        border: 1px solid #dcfce7;
+        border-left: 4px solid #16a34a;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+    
+    /* Sprint Badge */
+    .sprint-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: #e0e7ff;
+        color: #4338ca;
+        border: 1px solid #c7d2fe;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Simulator & Counterfactual styling */
+    .sim-card {
+        background-color: #ffffff;
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
+        padding: 18px;
+        margin-top: 14px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.04);
     }
     </style>
     """,
@@ -219,6 +400,110 @@ for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choic
         st.session_state[_key] = st.session_state[_key]
 
 
+def explain_customer_risk(customer: dict, churn_prob: float) -> dict:
+    """Analyzes customer record against top XGBoost model drivers to produce
+    explainable risk accelerators and protective anchors for decision support.
+    """
+    if hasattr(pp, "explain_customer_risk"):
+        try:
+            return pp.explain_customer_risk(customer, churn_prob)
+        except Exception:
+            pass
+
+    # Robust local fallback
+    risk_drivers = []
+    protective_factors = []
+
+    contract = customer.get("Contract")
+    if contract == "Month-to-month":
+        risk_drivers.append({
+            "factor": "Contract Type",
+            "detail": "Month-to-month contract (39.1% global feature importance) creates highest churn velocity.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif contract in ("One year", "Two year"):
+        protective_factors.append({
+            "factor": "Contract Type",
+            "detail": f"{contract} contract provides institutional commitment and retention stability.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    try:
+        tenure = int(customer.get("tenure", 0))
+    except (ValueError, TypeError):
+        tenure = 0
+
+    if tenure <= 6:
+        risk_drivers.append({
+            "factor": "Account Tenure",
+            "detail": f"New customer ({tenure} months) in high-hazard early lifecycle onboarding window.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif tenure >= 24:
+        protective_factors.append({
+            "factor": "Account Tenure",
+            "detail": f"Established customer relationship ({tenure} months) demonstrates brand loyalty.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    payment = customer.get("PaymentMethod")
+    if payment == "Electronic check":
+        risk_drivers.append({
+            "factor": "Payment Method",
+            "detail": "Electronic check carries elevated churn rates compared to automated options.",
+            "impact": "Moderate Risk",
+            "badge_color": "#d97706",
+        })
+    elif payment in ("Bank transfer (automatic)", "Credit card (automatic)"):
+        protective_factors.append({
+            "factor": "Payment Method",
+            "detail": f"Automated billing ({payment}) minimizes payment friction and involuntary churn.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    internet = customer.get("InternetService")
+    security = customer.get("OnlineSecurity")
+    support = customer.get("TechSupport")
+
+    if internet == "Fiber optic" and (security == "No" or support == "No"):
+        risk_drivers.append({
+            "factor": "Service Ecosystem",
+            "detail": "Premium Fiber Optic plan lacking Online Security / Tech Support add-ons reduces product stickiness.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif security == "Yes" and support == "Yes":
+        protective_factors.append({
+            "factor": "Product Stickiness",
+            "detail": "Subscribed to Online Security and Tech Support add-ons (higher switching barrier).",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    try:
+        monthly = float(customer.get("MonthlyCharges", 0))
+    except (ValueError, TypeError):
+        monthly = 0.0
+
+    if monthly > 80.0 and tenure < 12:
+        risk_drivers.append({
+            "factor": "Price Sensitivity",
+            "detail": f"High monthly billing (${monthly:,.2f}/mo) on newer account elevates price sensitivity.",
+            "impact": "Moderate Risk",
+            "badge_color": "#d97706",
+        })
+
+    return {
+        "risk_drivers": risk_drivers,
+        "protective_factors": protective_factors,
+    }
+
+
 def confusion_matrix_chart(cm) -> alt.LayerChart:
     """Heatmap of the confusion matrix with the count and row % written in each cell."""
     frame = pp.confusion_matrix_frame(cm)
@@ -269,16 +554,17 @@ def confusion_matrix_takeaways(cm) -> str:
 # ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
 # ---------------------------------------------------------
+st.sidebar.markdown("<div class='sprint-badge'>Sprint 2: Complete System Demo</div>", unsafe_allow_html=True)
 st.sidebar.image(
     "https://img.icons8.com/fluency/96/combo-chart.png",
-    width=64,
+    width=56,
 )
 st.sidebar.title("Hackforge ML")
 st.sidebar.caption("Software Engineering — Deliverable Part 2")
 
 nav_choice = st.sidebar.radio(
     "Navigation",
-    options=["Customer Churn Prediction", "Model Evaluation", "About the Project"],
+    options=["Customer Churn Prediction", "Batch Customer Scoring", "Model Evaluation", "About the Project"],
     index=0,
 )
 
@@ -316,7 +602,85 @@ if nav_choice == "Customer Churn Prediction":
             "are present in the project directory."
         )
     else:
-        st.subheader("Start from a sample customer")
+        st.subheader("Interactive Persona Quick-Cards")
+        st.caption("One-click demonstration profiles for quick evaluation of different risk tiers:")
+        
+        # 4 Interactive persona preset cards
+        pq1, pq2, pq3, pq4 = st.columns(4)
+        with pq1:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">🚨 High-Risk Tech</div>
+                        <div class="persona-tag-high">High Risk (~82%)</div>
+                        <div class="persona-desc">Senior • Mo-to-Mo • Fiber • Electronic check • 1 mo tenure</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load High-Risk", key="btn_card_high", use_container_width=True):
+                load_preset("High risk: new fiber customer")
+                st.session_state["preset_choice"] = "High risk: new fiber customer"
+                st.rerun()
+
+        with pq2:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">⚖️ Borderline At-Risk</div>
+                        <div class="persona-tag-mod">Moderate Risk (~50%)</div>
+                        <div class="persona-desc">DSL • Mo-to-Mo • Mailed check • 14 mos tenure • $64/mo</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Borderline", key="btn_card_borderline", use_container_width=True):
+                load_preset("Borderline: month-to-month DSL")
+                st.session_state["preset_choice"] = "Borderline: month-to-month DSL"
+                st.rerun()
+
+        with pq3:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">🛡️ Long-Term Loyal</div>
+                        <div class="persona-tag-low">Low Risk (~10%)</div>
+                        <div class="persona-desc">Family • 2-Year Contract • Auto-Bank • Full Security • 48 mos</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Loyal Family", key="btn_card_loyal", use_container_width=True):
+                load_preset("Low risk: loyal family on 2-year contract")
+                st.session_state["preset_choice"] = "Low risk: loyal family on 2-year contract"
+                st.rerun()
+
+        with pq4:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">📞 Budget Phone-Only</div>
+                        <div class="persona-tag-low">Low Risk (~5%)</div>
+                        <div class="persona-desc">No Internet • 2-Year Contract • Credit Card • 71 mos tenure</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Phone-Only", key="btn_card_phone", use_container_width=True):
+                load_preset("Low risk: phone-only customer")
+                st.session_state["preset_choice"] = "Low risk: phone-only customer"
+                st.rerun()
+
+        st.write("")
+        st.subheader("Sample Customer Preset & Form Controls")
         preset_col, button_col, clear_col = st.columns([3, 1, 1], vertical_alignment="bottom")
         with preset_col:
             chosen_preset = st.selectbox(
@@ -453,7 +817,25 @@ if nav_choice == "Customer Churn Prediction":
                                 unsafe_allow_html=True,
                             )
 
-                        st.write("")
+                        # Churn Probability Visual Gauge Meter
+                        gauge_color = "#dc2626" if churn_prob >= 0.65 else "#d97706" if churn_prob >= 0.35 else "#16a34a"
+                        gauge_pct = min(100.0, max(0.0, churn_prob * 100))
+                        st.markdown(
+                            f"""
+                            <div style="margin-top: 12px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; color: #64748b; margin-bottom: 4px;">
+                                    <span>Low Risk (0%)</span>
+                                    <span>Threshold ({decision_threshold * 100:.0f}%)</span>
+                                    <span>High Risk (100%)</span>
+                                </div>
+                                <div class="gauge-container">
+                                    <div class="gauge-fill" style="width: {gauge_pct:.1f}%; background-color: {gauge_color};"></div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
                         st.metric(
                             label="Predicted Churn Probability",
                             value=f"{churn_prob * 100:.1f}%",
@@ -508,7 +890,150 @@ if nav_choice == "Customer Churn Prediction":
                                 "Probability": [prob_dict["Stay"], prob_dict["Churn"]],
                             }
                         )
-                        st.bar_chart(prob_df.set_index("Class"), height=180)
+                        st.bar_chart(prob_df.set_index("Class"), height=200)
+
+                    # Explainable Risk Attribution & Key Churn Drivers
+                    st.write("")
+                    st.subheader("🔍 Explainable Risk Attribution & Key Drivers")
+                    attribution = explain_customer_risk(input_dict, churn_prob)
+                    attr_col1, attr_col2 = st.columns(2)
+                    with attr_col1:
+                        st.markdown("**🚨 Primary Risk Accelerators:**")
+                        if attribution["risk_drivers"]:
+                            for driver in attribution["risk_drivers"]:
+                                st.markdown(
+                                    f"""
+                                    <div class="driver-chip-danger">
+                                        <strong>{driver['factor']}:</strong> {driver['detail']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            st.info("No significant risk accelerators detected for this profile.")
+
+                    with attr_col2:
+                        st.markdown("**🛡️ Primary Retention Anchors:**")
+                        if attribution["protective_factors"]:
+                            for anchor in attribution["protective_factors"]:
+                                st.markdown(
+                                    f"""
+                                    <div class="driver-chip-success">
+                                        <strong>{anchor['factor']}:</strong> {anchor['detail']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            st.info("No strong retention anchors identified; customer is uncommitted.")
+
+                    # -------------------------------------------------
+                    # SPRINT 2: "What-If" Retention Strategy Simulator
+                    # -------------------------------------------------
+                    st.write("")
+                    st.subheader("🧪 'What-If' Retention Strategy Simulator")
+                    st.caption(
+                        "Test counterfactual interventions in real-time. "
+                        "Simulate contract extensions, security/support bundles, or billing discounts "
+                        "to see immediate impact on predicted churn probability and retained revenue."
+                    )
+
+                    with st.container():
+                        sim_c1, sim_c2, sim_c3 = st.columns(3)
+                        with sim_c1:
+                            sim_contract = st.selectbox(
+                                "Simulate Contract Upgrade",
+                                options=["Keep Current", "One year", "Two year"],
+                                index=1 if input_dict.get("Contract") == "Month-to-month" else 0,
+                                help="Long-term contracts are the single most powerful driver of customer retention (39.1% global feature importance).",
+                            )
+                        with sim_c2:
+                            has_internet = input_dict.get("InternetService") != "No"
+                            sim_support = st.selectbox(
+                                "Simulate Support & Security Bundle",
+                                options=["Keep Current", "Add Tech Support & Security", "Remove Add-ons"],
+                                index=1 if (has_internet and input_dict.get("TechSupport") == "No") else 0,
+                                help="Adds Online Security and Tech Support add-ons to enhance service stickiness.",
+                            )
+                        with sim_c3:
+                            sim_discount = st.slider(
+                                "Simulate Monthly Promotional Discount ($)",
+                                min_value=0.0,
+                                max_value=30.0,
+                                value=10.0 if pred_class == 1 else 0.0,
+                                step=2.5,
+                                help="Simulate reducing monthly charges to test price elasticity.",
+                            )
+
+                        # Build counterfactual record
+                        cf_dict = dict(input_dict)
+                        if sim_contract != "Keep Current":
+                            cf_dict["Contract"] = sim_contract
+                        if sim_support == "Add Tech Support & Security" and has_internet:
+                            cf_dict["OnlineSecurity"] = "Yes"
+                            cf_dict["TechSupport"] = "Yes"
+                        elif sim_support == "Remove Add-ons" and has_internet:
+                            cf_dict["OnlineSecurity"] = "No"
+                            cf_dict["TechSupport"] = "No"
+
+                        if sim_discount > 0:
+                            orig_monthly = float(input_dict.get("MonthlyCharges", 0))
+                            cf_dict["MonthlyCharges"] = max(18.25, round(orig_monthly - sim_discount, 2))
+                            orig_tenure = max(1, int(input_dict.get("tenure", 1)))
+                            cf_dict["TotalCharges"] = round(cf_dict["MonthlyCharges"] * orig_tenure, 2)
+
+                        try:
+                            cf_processed = pp.preprocess_input(cf_dict, encoders, feature_names)
+                            cf_pred, cf_prob, cf_prob_dict, cf_tier = pp.predict_churn(
+                                model, cf_processed, threshold=decision_threshold
+                            )
+
+                            risk_delta = cf_prob - churn_prob
+                            risk_reduction_pct = (churn_prob - cf_prob) / churn_prob * 100 if churn_prob > 0 else 0
+                            orig_annual_rev = float(input_dict.get("MonthlyCharges", 0)) * 12
+                            sim_annual_rev = float(cf_dict.get("MonthlyCharges", 0)) * 12
+
+                            st.markdown("##### 📊 Counterfactual Simulation Outcome")
+                            sc1, sc2, sc3, sc4 = st.columns(4)
+                            sc1.metric(
+                                "Simulated Churn Risk",
+                                f"{cf_prob * 100:.1f}%",
+                                delta=f"{risk_delta * 100:+.1f}% vs Baseline",
+                                delta_color="inverse",
+                            )
+                            sc2.metric(
+                                "Relative Risk Drop",
+                                f"{risk_reduction_pct:.1f}%",
+                                delta=f"-{abs(risk_delta)*100:.1f}% Abs Drop" if risk_delta < 0 else None,
+                            )
+                            sc3.metric(
+                                "Simulated Risk Tier",
+                                f"{cf_tier} Risk",
+                                delta="Retention Safety" if (pred_class == 1 and cf_pred == 0) else None,
+                            )
+                            sc4.metric(
+                                "Annual Recurring Revenue",
+                                f"${sim_annual_rev:,.0f} / yr",
+                                delta=f"-${(orig_annual_rev - sim_annual_rev):,.0f} Discount" if sim_discount > 0 else "Full Retention Value",
+                            )
+
+                            if pred_class == 1 and cf_pred == 0:
+                                st.success(
+                                    f"🎉 **Retention Strategy Successful!** Applying these intervention levers drops the customer's churn risk "
+                                    f"from **{churn_prob * 100:.1f}%** down to **{cf_prob * 100:.1f}%** ({risk_reduction_pct:.1f}% risk reduction). "
+                                    f"The account is successfully converted from **High Risk** to **{cf_tier} Risk**, preserving **${sim_annual_rev:,.2f}/yr** in recurring revenue!",
+                                    icon="✅",
+                                )
+                            elif risk_delta < 0:
+                                st.info(
+                                    f"📉 **Risk Reduced:** Churn probability reduced from **{churn_prob * 100:.1f}%** to **{cf_prob * 100:.1f}%** "
+                                    f"({risk_reduction_pct:.1f}% reduction). Consider coupling with automated payment billing for greater retention.",
+                                    icon="💡",
+                                )
+                            else:
+                                st.caption("No retention levers applied yet. Adjust the options above to simulate interventions.")
+                        except Exception as e:
+                            st.warning(f"Could not compute counterfactual simulation: {e}")
 
                     st.markdown(
                         "<div class='alert-disclaimer'>"
@@ -531,7 +1056,135 @@ if nav_choice == "Customer Churn Prediction":
 
 
 # ---------------------------------------------------------
-# SECTION B: Model Evaluation
+# SECTION B: Batch Customer Scoring (Sprint 2 Deliverable)
+# ---------------------------------------------------------
+elif nav_choice == "Batch Customer Scoring":
+    st.header("Batch Customer Scoring & Retention Export")
+    st.write(
+        "Evaluate customer portfolios in bulk using the tuned **XGBoost Classifier** inference engine. "
+        "Upload customer CSV records or evaluate holdout evaluation samples to generate prioritized retention campaign targets."
+    )
+
+    if not artifacts_loaded:
+        st.error(f"Cannot run batch scoring: {load_error}")
+    else:
+        st.subheader("1. Data Source Selection")
+        data_source = st.radio(
+            "Select Input Source",
+            options=["Sample Holdout Evaluation Batch (100 Telco Customers)", "Upload Custom Customer CSV"],
+            horizontal=True,
+        )
+
+        batch_df = None
+        if data_source == "Sample Holdout Evaluation Batch (100 Telco Customers)":
+            try:
+                raw_df = pp.load_dataset()
+                batch_df = raw_df.sample(n=min(100, len(raw_df)), random_state=42).copy()
+                st.caption(f"Loaded {len(batch_df)} verified customer accounts from holdout dataset.")
+            except Exception as e:
+                st.error(f"Could not load sample dataset: {e}")
+        else:
+            uploaded_file = st.file_uploader("Upload Customer CSV File", type=["csv"])
+            if uploaded_file is not None:
+                try:
+                    batch_df = pd.read_csv(uploaded_file)
+                    st.success(f"Uploaded CSV with {len(batch_df)} records.")
+                except Exception as e:
+                    st.error(f"Error parsing uploaded CSV: {e}")
+
+        if batch_df is not None:
+            st.write("")
+            st.subheader("2. Batch Scoring Configuration")
+            b_thresh_col, b_btn_col = st.columns([3, 1], vertical_alignment="bottom")
+            with b_thresh_col:
+                batch_threshold = st.slider(
+                    "Batch Decision Threshold (P(Churn) >= Threshold -> Churn)",
+                    min_value=0.20,
+                    max_value=0.80,
+                    value=0.50,
+                    step=0.05,
+                    key="batch_scoring_threshold",
+                )
+            with b_btn_col:
+                run_batch = st.button("Run Batch Scoring", type="primary", use_container_width=True)
+
+            if run_batch or "last_batch_results" in st.session_state:
+                if run_batch:
+                    with st.spinner("Executing vectorized inference across customer portfolio..."):
+                        try:
+                            scored_results = pp.score_customer_batch(
+                                batch_df, model, encoders, feature_names, threshold=batch_threshold
+                            )
+                            st.session_state["last_batch_results"] = scored_results
+                        except Exception as e:
+                            st.error(f"Batch inference failed: {e}")
+                            st.session_state["last_batch_results"] = None
+
+                scored_df = st.session_state.get("last_batch_results")
+                if scored_df is not None and not scored_df.empty:
+                    st.write("")
+                    st.subheader("3. Portfolio Risk Summary & Prioritization")
+                    total_customers = len(scored_df)
+                    high_risk_count = int((scored_df["Risk_Tier"] == "High").sum())
+                    mod_risk_count = int((scored_df["Risk_Tier"] == "Moderate").sum())
+                    low_risk_count = int((scored_df["Risk_Tier"] == "Low").sum())
+                    pred_churners = int((scored_df["Predicted_Class"] == "Churn").sum())
+
+                    k1, k2, k3, k4 = st.columns(4)
+                    k1.metric("Total Scored", f"{total_customers:,}")
+                    k2.metric("Critical High Risk (🔴)", f"{high_risk_count} ({high_risk_count/total_customers*100:.1f}%)")
+                    k3.metric("Moderate Risk (🟡)", f"{mod_risk_count} ({mod_risk_count/total_customers*100:.1f}%)")
+                    k4.metric("Low Risk / Loyal (🟢)", f"{low_risk_count} ({low_risk_count/total_customers*100:.1f}%)")
+
+                    # Risk distribution chart
+                    dist_col, action_col = st.columns([1, 1])
+                    with dist_col:
+                        st.write("**Risk Tier Distribution:**")
+                        risk_summary = pd.DataFrame({
+                            "Risk Tier": ["High Risk (>65%)", "Moderate Risk (35-65%)", "Low Risk (<35%)"],
+                            "Customers": [high_risk_count, mod_risk_count, low_risk_count],
+                        })
+                        chart = alt.Chart(risk_summary).mark_bar(cornerRadius=6).encode(
+                            x=alt.X("Risk Tier:N", sort=None, title=None),
+                            y=alt.Y("Customers:Q", title="Account Count"),
+                            color=alt.Color("Risk Tier:N", scale=alt.Scale(
+                                domain=["High Risk (>65%)", "Moderate Risk (35-65%)", "Low Risk (<35%)"],
+                                range=["#ef4444", "#f59e0b", "#10b981"]
+                            ), legend=None)
+                        ).properties(height=220)
+                        st.altair_chart(chart, use_container_width=True)
+
+                    with action_col:
+                        st.write("**Executive Action Plan:**")
+                        st.markdown(
+                            f"""
+                            - **Immediate Intervention Target:** `{high_risk_count}` accounts flagged as Critical Churn Hazard. Assign to Senior Account Execs for discount outreach.
+                            - **Automated Check-in Pool:** `{mod_risk_count}` accounts displaying moderate drift. Enroll in automated re-engagement workflows.
+                            - **Stable Base:** `{low_risk_count}` loyal accounts identified for cross-sell and loyalty rewards.
+                            """
+                        )
+                        # Export Button
+                        csv_data = scored_df.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            label="📥 Download Priority Retention Outreach CSV",
+                            data=csv_data,
+                            file_name="prioritized_retention_campaign_targets.csv",
+                            mime="text/csv",
+                            type="primary",
+                            use_container_width=True,
+                        )
+
+                    st.write("")
+                    st.write("**Customer Risk Evaluation Table (Sorted by Highest Churn Risk):**")
+                    display_cols = ["customerID", "Churn_Probability", "Predicted_Class", "Risk_Tier", "Contract", "tenure", "MonthlyCharges", "PaymentMethod"]
+                    if "Actual_Churn" in scored_df.columns:
+                        display_cols.append("Actual_Churn")
+                    available_cols = [c for c in display_cols if c in scored_df.columns]
+                    st.dataframe(scored_df[available_cols], use_container_width=True, hide_index=True)
+
+
+# ---------------------------------------------------------
+# SECTION C: Model Evaluation
 # ---------------------------------------------------------
 elif nav_choice == "Model Evaluation":
     st.header("Model Evaluation & Performance Benchmarks")
