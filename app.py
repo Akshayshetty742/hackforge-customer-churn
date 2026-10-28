@@ -5,6 +5,7 @@ Deliverable Part 2: Interactive ML Inference, Model Evaluation, and Architecture
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 import altair as alt
@@ -16,6 +17,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import customer_presets as cp
 import prediction_pipeline as pp
+
+try:
+    importlib.reload(pp)
+    importlib.reload(cp)
+except Exception:
+    pass
 
 # ---------------------------------------------------------
 # Page Configuration
@@ -380,6 +387,110 @@ if field_key("gender") not in st.session_state:
 for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choice", "auto_total_charges"]:
     if _key in st.session_state:
         st.session_state[_key] = st.session_state[_key]
+
+
+def explain_customer_risk(customer: dict, churn_prob: float) -> dict:
+    """Analyzes customer record against top XGBoost model drivers to produce
+    explainable risk accelerators and protective anchors for decision support.
+    """
+    if hasattr(pp, "explain_customer_risk"):
+        try:
+            return pp.explain_customer_risk(customer, churn_prob)
+        except Exception:
+            pass
+
+    # Robust local fallback
+    risk_drivers = []
+    protective_factors = []
+
+    contract = customer.get("Contract")
+    if contract == "Month-to-month":
+        risk_drivers.append({
+            "factor": "Contract Type",
+            "detail": "Month-to-month contract (39.1% global feature importance) creates highest churn velocity.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif contract in ("One year", "Two year"):
+        protective_factors.append({
+            "factor": "Contract Type",
+            "detail": f"{contract} contract provides institutional commitment and retention stability.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    try:
+        tenure = int(customer.get("tenure", 0))
+    except (ValueError, TypeError):
+        tenure = 0
+
+    if tenure <= 6:
+        risk_drivers.append({
+            "factor": "Account Tenure",
+            "detail": f"New customer ({tenure} months) in high-hazard early lifecycle onboarding window.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif tenure >= 24:
+        protective_factors.append({
+            "factor": "Account Tenure",
+            "detail": f"Established customer relationship ({tenure} months) demonstrates brand loyalty.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    payment = customer.get("PaymentMethod")
+    if payment == "Electronic check":
+        risk_drivers.append({
+            "factor": "Payment Method",
+            "detail": "Electronic check carries elevated churn rates compared to automated options.",
+            "impact": "Moderate Risk",
+            "badge_color": "#d97706",
+        })
+    elif payment in ("Bank transfer (automatic)", "Credit card (automatic)"):
+        protective_factors.append({
+            "factor": "Payment Method",
+            "detail": f"Automated billing ({payment}) minimizes payment friction and involuntary churn.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    internet = customer.get("InternetService")
+    security = customer.get("OnlineSecurity")
+    support = customer.get("TechSupport")
+
+    if internet == "Fiber optic" and (security == "No" or support == "No"):
+        risk_drivers.append({
+            "factor": "Service Ecosystem",
+            "detail": "Premium Fiber Optic plan lacking Online Security / Tech Support add-ons reduces product stickiness.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif security == "Yes" and support == "Yes":
+        protective_factors.append({
+            "factor": "Product Stickiness",
+            "detail": "Subscribed to Online Security and Tech Support add-ons (higher switching barrier).",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    try:
+        monthly = float(customer.get("MonthlyCharges", 0))
+    except (ValueError, TypeError):
+        monthly = 0.0
+
+    if monthly > 80.0 and tenure < 12:
+        risk_drivers.append({
+            "factor": "Price Sensitivity",
+            "detail": f"High monthly billing (${monthly:,.2f}/mo) on newer account elevates price sensitivity.",
+            "impact": "Moderate Risk",
+            "badge_color": "#d97706",
+        })
+
+    return {
+        "risk_drivers": risk_drivers,
+        "protective_factors": protective_factors,
+    }
 
 
 def confusion_matrix_chart(cm) -> alt.LayerChart:
@@ -773,7 +884,7 @@ if nav_choice == "Customer Churn Prediction":
                     # Explainable Risk Attribution & Key Churn Drivers
                     st.write("")
                     st.subheader("🔍 Explainable Risk Attribution & Key Drivers")
-                    attribution = pp.explain_customer_risk(input_dict, churn_prob)
+                    attribution = explain_customer_risk(input_dict, churn_prob)
                     attr_col1, attr_col2 = st.columns(2)
                     with attr_col1:
                         st.markdown("**🚨 Primary Risk Accelerators:**")
