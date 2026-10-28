@@ -669,3 +669,109 @@ def compare_with_benchmark(
     )
     table = pd.DataFrame(rows)
     return bool(table["Match"].all()), table
+
+
+def explain_customer_risk(
+    customer: Dict[str, Any],
+    churn_prob: float,
+) -> Dict[str, List[Dict[str, str]]]:
+    """Analyzes a customer record against top XGBoost model drivers to produce
+    explainable risk accelerators and protective anchors for decision support.
+    """
+    risk_drivers: List[Dict[str, str]] = []
+    protective_factors: List[Dict[str, str]] = []
+
+    # 1. Contract Type (Feature importance ~39.1%)
+    contract = customer.get("Contract")
+    if contract == "Month-to-month":
+        risk_drivers.append({
+            "factor": "Contract Type",
+            "detail": "Month-to-month contract (39.1% global feature importance) creates highest churn velocity.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif contract in ("One year", "Two year"):
+        protective_factors.append({
+            "factor": "Contract Type",
+            "detail": f"{contract} contract provides institutional commitment and retention stability.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    # 2. Tenure Duration (Early lifecycle vulnerability)
+    try:
+        tenure = int(customer.get("tenure", 0))
+    except (ValueError, TypeError):
+        tenure = 0
+
+    if tenure <= 6:
+        risk_drivers.append({
+            "factor": "Account Tenure",
+            "detail": f"New customer ({tenure} months) in high-hazard early lifecycle onboarding window.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif tenure >= 24:
+        protective_factors.append({
+            "factor": "Account Tenure",
+            "detail": f"Established customer relationship ({tenure} months) demonstrates brand loyalty.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    # 3. Payment Method
+    payment = customer.get("PaymentMethod")
+    if payment == "Electronic check":
+        risk_drivers.append({
+            "factor": "Payment Method",
+            "detail": "Electronic check carries elevated churn rates compared to automated options.",
+            "impact": "Moderate Risk",
+            "badge_color": "#d97706",
+        })
+    elif payment in ("Bank transfer (automatic)", "Credit card (automatic)"):
+        protective_factors.append({
+            "factor": "Payment Method",
+            "detail": f"Automated billing ({payment}) minimizes payment friction and involuntary churn.",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    # 4. Internet Service & Support Add-ons
+    internet = customer.get("InternetService")
+    security = customer.get("OnlineSecurity")
+    support = customer.get("TechSupport")
+
+    if internet == "Fiber optic" and (security == "No" or support == "No"):
+        risk_drivers.append({
+            "factor": "Service Ecosystem",
+            "detail": "Premium Fiber Optic plan lacking Online Security / Tech Support add-ons reduces product stickiness.",
+            "impact": "High Risk",
+            "badge_color": "#dc2626",
+        })
+    elif security == "Yes" and support == "Yes":
+        protective_factors.append({
+            "factor": "Product Stickiness",
+            "detail": "Subscribed to Online Security and Tech Support add-ons (higher switching barrier).",
+            "impact": "Protective",
+            "badge_color": "#16a34a",
+        })
+
+    # 5. Billing Burden
+    try:
+        monthly = float(customer.get("MonthlyCharges", 0))
+    except (ValueError, TypeError):
+        monthly = 0.0
+
+    if monthly > 80.0 and tenure < 12:
+        risk_drivers.append({
+            "factor": "Price Sensitivity",
+            "detail": f"High monthly billing (${monthly:,.2f}/mo) on newer account elevates price sensitivity.",
+            "impact": "Moderate Risk",
+            "badge_color": "#d97706",
+        })
+
+    return {
+        "risk_drivers": risk_drivers,
+        "protective_factors": protective_factors,
+    }
+

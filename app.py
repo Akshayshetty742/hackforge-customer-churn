@@ -27,70 +27,233 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling for clean, modern look without excessive dependencies
+# Custom Styling for clean, modern executive light-mode look
 st.markdown(
     """
     <style>
-    .metric-card {
-        background-color: #1a1f2c;
-        border: 1px solid #2e384d;
-        border-radius: 8px;
-        padding: 18px;
+    /* Global light mode surface */
+    .stApp {
+        background-color: #f8fafc;
+        color: #0f172a;
+    }
+    
+    /* Clean executive cards */
+    .bright-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .bright-card-header {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
         margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Persona quick-cards */
+    .persona-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .persona-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+    .persona-tag-high {
+        font-size: 0.75rem;
+        font-weight: 700;
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+    .persona-tag-mod {
+        font-size: 0.75rem;
+        font-weight: 700;
+        background-color: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+    .persona-tag-low {
+        font-size: 0.75rem;
+        font-weight: 700;
+        background-color: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+        border-radius: 12px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+    .persona-desc {
+        font-size: 0.8rem;
+        color: #64748b;
+        line-height: 1.35;
+        margin-bottom: 8px;
+    }
+    
+    /* Metrics */
+    .metric-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
     .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #60a5fa;
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #4f46e5;
     }
     .metric-label {
-        font-size: 0.875rem;
-        color: #94a3b8;
+        font-size: 0.85rem;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        font-weight: 600;
     }
+    
+    /* Risk Pills */
     .churn-pill-high {
-        background-color: rgba(239, 68, 68, 0.2);
-        color: #f87171;
-        border: 1px solid #ef4444;
-        padding: 6px 14px;
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #f87171;
+        padding: 8px 18px;
         border-radius: 20px;
         display: inline-block;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
     .churn-pill-low {
-        background-color: rgba(34, 197, 94, 0.2);
-        color: #4ade80;
-        border: 1px solid #22c55e;
-        padding: 6px 14px;
+        background-color: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #4ade80;
+        padding: 8px 18px;
         border-radius: 20px;
         display: inline-block;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
     .churn-pill-moderate {
-        background-color: rgba(234, 179, 8, 0.2);
-        color: #facc15;
-        border: 1px solid #eab308;
-        padding: 6px 14px;
+        background-color: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fcd34d;
+        padding: 8px 18px;
         border-radius: 20px;
         display: inline-block;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
+    
+    /* Recommendation & Alert Boxes */
     .recommendation-box {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        padding: 12px 16px;
-        margin-top: 10px;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #4f46e5;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-top: 12px;
+        color: #1e293b;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
     .alert-disclaimer {
         font-size: 0.85rem;
-        color: #cbd5e1;
-        background: #0f172a;
-        padding: 12px;
+        color: #475569;
+        background: #f1f5f9;
+        padding: 14px 18px;
         border-left: 4px solid #3b82f6;
-        border-radius: 4px;
-        margin-top: 15px;
+        border-radius: 6px;
+        margin-top: 16px;
+    }
+    
+    /* Gauge Meter */
+    .gauge-container {
+        width: 100%;
+        height: 18px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        margin: 10px 0 8px 0;
+    }
+    .gauge-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+    
+    /* Attribution Chips */
+    .driver-chip-danger {
+        background: #ffffff;
+        border: 1px solid #fee2e2;
+        border-left: 4px solid #dc2626;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+    .driver-chip-warning {
+        background: #ffffff;
+        border: 1px solid #fef3c7;
+        border-left: 4px solid #d97706;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+    .driver-chip-success {
+        background: #ffffff;
+        border: 1px solid #dcfce7;
+        border-left: 4px solid #16a34a;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+    
+    /* Sprint Badge */
+    .sprint-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: #e0e7ff;
+        color: #4338ca;
+        border: 1px solid #c7d2fe;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     </style>
     """,
@@ -269,9 +432,10 @@ def confusion_matrix_takeaways(cm) -> str:
 # ---------------------------------------------------------
 # Sidebar Navigation & Model Selector
 # ---------------------------------------------------------
+st.sidebar.markdown("<div class='sprint-badge'>Sprint 1: Active MVP Demo</div>", unsafe_allow_html=True)
 st.sidebar.image(
     "https://img.icons8.com/fluency/96/combo-chart.png",
-    width=64,
+    width=56,
 )
 st.sidebar.title("Hackforge ML")
 st.sidebar.caption("Software Engineering — Deliverable Part 2")
@@ -316,7 +480,85 @@ if nav_choice == "Customer Churn Prediction":
             "are present in the project directory."
         )
     else:
-        st.subheader("Start from a sample customer")
+        st.subheader("Interactive Persona Quick-Cards")
+        st.caption("One-click demonstration profiles for quick evaluation of different risk tiers:")
+        
+        # 4 Interactive persona preset cards
+        pq1, pq2, pq3, pq4 = st.columns(4)
+        with pq1:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">🚨 High-Risk Tech</div>
+                        <div class="persona-tag-high">High Risk (~82%)</div>
+                        <div class="persona-desc">Senior • Mo-to-Mo • Fiber • Electronic check • 1 mo tenure</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load High-Risk", key="btn_card_high", use_container_width=True):
+                load_preset("High risk: new fiber customer")
+                st.session_state["preset_choice"] = "High risk: new fiber customer"
+                st.rerun()
+
+        with pq2:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">⚖️ Borderline At-Risk</div>
+                        <div class="persona-tag-mod">Moderate Risk (~50%)</div>
+                        <div class="persona-desc">DSL • Mo-to-Mo • Mailed check • 14 mos tenure • $64/mo</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Borderline", key="btn_card_borderline", use_container_width=True):
+                load_preset("Borderline: month-to-month DSL")
+                st.session_state["preset_choice"] = "Borderline: month-to-month DSL"
+                st.rerun()
+
+        with pq3:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">🛡️ Long-Term Loyal</div>
+                        <div class="persona-tag-low">Low Risk (~10%)</div>
+                        <div class="persona-desc">Family • 2-Year Contract • Auto-Bank • Full Security • 48 mos</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Loyal Family", key="btn_card_loyal", use_container_width=True):
+                load_preset("Low risk: loyal family on 2-year contract")
+                st.session_state["preset_choice"] = "Low risk: loyal family on 2-year contract"
+                st.rerun()
+
+        with pq4:
+            st.markdown(
+                """
+                <div class="persona-card">
+                    <div>
+                        <div class="persona-title">📞 Budget Phone-Only</div>
+                        <div class="persona-tag-low">Low Risk (~5%)</div>
+                        <div class="persona-desc">No Internet • 2-Year Contract • Credit Card • 71 mos tenure</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Phone-Only", key="btn_card_phone", use_container_width=True):
+                load_preset("Low risk: phone-only customer")
+                st.session_state["preset_choice"] = "Low risk: phone-only customer"
+                st.rerun()
+
+        st.write("")
+        st.subheader("Sample Customer Preset & Form Controls")
         preset_col, button_col, clear_col = st.columns([3, 1, 1], vertical_alignment="bottom")
         with preset_col:
             chosen_preset = st.selectbox(
@@ -453,7 +695,25 @@ if nav_choice == "Customer Churn Prediction":
                                 unsafe_allow_html=True,
                             )
 
-                        st.write("")
+                        # Churn Probability Visual Gauge Meter
+                        gauge_color = "#dc2626" if churn_prob >= 0.65 else "#d97706" if churn_prob >= 0.35 else "#16a34a"
+                        gauge_pct = min(100.0, max(0.0, churn_prob * 100))
+                        st.markdown(
+                            f"""
+                            <div style="margin-top: 12px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; color: #64748b; margin-bottom: 4px;">
+                                    <span>Low Risk (0%)</span>
+                                    <span>Threshold ({decision_threshold * 100:.0f}%)</span>
+                                    <span>High Risk (100%)</span>
+                                </div>
+                                <div class="gauge-container">
+                                    <div class="gauge-fill" style="width: {gauge_pct:.1f}%; background-color: {gauge_color};"></div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
                         st.metric(
                             label="Predicted Churn Probability",
                             value=f"{churn_prob * 100:.1f}%",
@@ -508,7 +768,42 @@ if nav_choice == "Customer Churn Prediction":
                                 "Probability": [prob_dict["Stay"], prob_dict["Churn"]],
                             }
                         )
-                        st.bar_chart(prob_df.set_index("Class"), height=180)
+                        st.bar_chart(prob_df.set_index("Class"), height=200)
+
+                    # Explainable Risk Attribution & Key Churn Drivers
+                    st.write("")
+                    st.subheader("🔍 Explainable Risk Attribution & Key Drivers")
+                    attribution = pp.explain_customer_risk(input_dict, churn_prob)
+                    attr_col1, attr_col2 = st.columns(2)
+                    with attr_col1:
+                        st.markdown("**🚨 Primary Risk Accelerators:**")
+                        if attribution["risk_drivers"]:
+                            for driver in attribution["risk_drivers"]:
+                                st.markdown(
+                                    f"""
+                                    <div class="driver-chip-danger">
+                                        <strong>{driver['factor']}:</strong> {driver['detail']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            st.info("No significant risk accelerators detected for this profile.")
+
+                    with attr_col2:
+                        st.markdown("**🛡️ Primary Retention Anchors:**")
+                        if attribution["protective_factors"]:
+                            for anchor in attribution["protective_factors"]:
+                                st.markdown(
+                                    f"""
+                                    <div class="driver-chip-success">
+                                        <strong>{anchor['factor']}:</strong> {anchor['detail']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            st.info("No strong retention anchors identified; customer is uncommitted.")
 
                     st.markdown(
                         "<div class='alert-disclaimer'>"
