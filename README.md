@@ -251,3 +251,15 @@ A GitHub Actions workflow is provided in `.github/workflows/ci.yml`. On every pu
 ## Deliverable 2 Verification
 
 Automated tests are executed continuously via GitHub Actions (`.github/workflows/ci.yml`) on every pull request and push to `main`. All 98 test cases pass with 100% success rate.
+
+---
+
+## Sprint Demonstration Videos
+
+In accordance with the Software Engineering Mini-Project Deliverables (Part 1 and Part 2), video demonstrations for each sprint have been recorded, verified, and committed to the repository:
+
+| Sprint | Deliverable Description | Duration | Repository Path | Direct GitHub Link |
+| :--- | :--- | :---: | :--- | :--- |
+| **Sprint 1** | Functional MVP product demonstration: bright executive UI, 1-click persona quick cards, real-time XGBoost probability gauge, and explainable risk factor attribution. | ~1 min | [`docs/evidence/videos/sprint1.mp4`](docs/evidence/videos/sprint1.mp4) | [View sprint1.mp4 on GitHub](https://github.com/Akshayshetty742/hackforge-customer-churn/blob/main/docs/evidence/videos/sprint1.mp4) |
+| **Sprint 2** | Complete working product walkthrough: interactive "What-If" retention strategy simulator, vectorized batch customer CSV scoring with downloadable outreach export, dynamic threshold tuning, and 98-test automated quality verification. | ~2 min | [`docs/evidence/videos/sprint2.mp4`](docs/evidence/videos/sprint2.mp4) | [View sprint2.mp4 on GitHub](https://github.com/Akshayshetty742/hackforge-customer-churn/blob/main/docs/evidence/videos/sprint2.mp4) |
+
