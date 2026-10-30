@@ -29,8 +29,9 @@ secrets.toml
 # Nested extraction archive folder
 customer-churn-predictior-main/
 
-# Word documents / rubrics
+# Word documents / rubrics (submitted deliverables are kept)
 *.docx
+!docs/deliverables/*.docx
 
 # DVC tracked files
 /WA_Fn-UseC_-Telco-Customer-Churn.csv
