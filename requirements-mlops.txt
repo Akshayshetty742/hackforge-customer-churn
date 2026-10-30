@@ -1,0 +1,7 @@
+# Training pipeline, experiment tracking and data versioning (01_churn_prediction_xgboost.py, dvc repro).
+-r requirements.txt
+mlflow>=3.0.0
+dvc>=3.0.0
+PyYAML>=6.0
+matplotlib>=3.8.0
+seaborn>=0.13.0

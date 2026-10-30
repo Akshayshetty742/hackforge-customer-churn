@@ -11,8 +11,8 @@ Covers:
 - Graceful handling of missing model / encoder files
 - Mock testing for missing artifacts
 """
+# pylint: disable=redefined-outer-name  # pytest injects fixtures by parameter name
 
-import os
 import pytest
 import pandas as pd
 import numpy as np
@@ -23,6 +23,7 @@ import prediction_pipeline as pp
 
 @pytest.fixture
 def sample_valid_input():
+    """First record of the Telco dataset, which passes every validation rule."""
     return {
         "gender": "Female",
         "SeniorCitizen": 0,
@@ -48,6 +49,7 @@ def sample_valid_input():
 
 @pytest.fixture
 def loaded_artifacts():
+    """Saved model, feature order and encoders."""
     return pp.load_artifacts()
 
 
@@ -453,6 +455,7 @@ def test_unknown_preset_raises_key_error():
 
 @pytest.fixture(scope="module")
 def live_results():
+    """Live evaluation of the saved model on the held-out split."""
     return pp.evaluate_model_on_dataset()
 
 

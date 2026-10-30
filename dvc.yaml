@@ -3,10 +3,14 @@ stages:
     cmd: python 01_churn_prediction_xgboost.py
     deps:
       - 01_churn_prediction_xgboost.py
+      - classical_models.py
+      - training_common.py
+      - prediction_pipeline.py
       - WA_Fn-UseC_-Telco-Customer-Churn.csv
     params:
       - params.yaml:
         - prepare
+        - model
         - train
     outs:
       - customer_churn_model_xgboost.pkl
@@ -22,4 +26,30 @@ stages:
       - plots/roc_curve.png:
           cache: false
       - plots/feature_importance.png:
+          cache: false
+  benchmark_paradigms:
+    cmd: python 02_paradigm_benchmark.py
+    deps:
+      - 02_paradigm_benchmark.py
+      - classical_models.py
+      - dml_model.py
+      - qml_model.py
+      - training_common.py
+      - prediction_pipeline.py
+      - WA_Fn-UseC_-Telco-Customer-Churn.csv
+    params:
+      - params.yaml:
+        - prepare
+        - train
+        - paradigms
+    outs:
+      - models/dml_model.pkl:
+          cache: false
+      - models/qml_model.pkl:
+          cache: false
+    metrics:
+      - paradigm_metrics.json:
+          cache: false
+    plots:
+      - plots/paradigm_comparison.png:
           cache: false

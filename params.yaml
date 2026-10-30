@@ -5,6 +5,7 @@ prepare:
 
 model:
   type: "all"  # Options: "all", "xgboost", "random_forest", "logistic_regression"
+  champion_metric: "roc_auc"  # Metric used to pick the exported model when several are trained
 
 train:
   cv_splits: 3
@@ -27,3 +28,25 @@ train:
 
 evaluate:
   threshold: 0.5
+
+# ML vs DML vs QML benchmark (02_paradigm_benchmark.py). Uses the prepare split and the train grid for XGBoost.
+paradigms:
+  include: ["ml", "dml", "qml"]
+  dml:
+    hidden_layers: [64, 32]
+    dropout: 0.3
+    training:
+      learning_rate: 0.001
+      weight_decay: 0.0001
+      batch_size: 128
+      max_epochs: 200
+      patience: 15
+  qml:
+    n_qubits: 6
+    n_layers: 3
+    training:
+      learning_rate: 0.02
+      weight_decay: 0.0
+      batch_size: 64
+      max_epochs: 40
+      patience: 8
