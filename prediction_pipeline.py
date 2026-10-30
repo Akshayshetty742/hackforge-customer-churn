@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import pickle
 import warnings
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -29,6 +29,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_MODEL_FILE = os.path.join(BASE_DIR, "customer_churn_model_xgboost.pkl")
 DEFAULT_ENCODER_FILE = os.path.join(BASE_DIR, "encoders.pkl")
 DEFAULT_DATASET_FILE = os.path.join(BASE_DIR, "WA_Fn-UseC_-Telco-Customer-Churn.csv")
+
+# Deep (DML) and quantum (QML) models saved by 02_paradigm_benchmark.py for side-by-side predictions
+PARADIGM_MODEL_FILES: Dict[str, str] = {
+    "DML": os.path.join(BASE_DIR, "models", "dml_model.pkl"),
+    "QML": os.path.join(BASE_DIR, "models", "qml_model.pkl"),
+}
 
 EXPECTED_FEATURE_COLUMNS: List[str] = [
     "gender",
@@ -257,26 +263,16 @@ def clean_customer_input(data: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned
 
 
-def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
-    """Validates input payload fields, ranges, and consistency.
+def _missing_field_errors(data: Dict[str, Any]) -> List[str]:
+    return [
+        f"Missing required field: '{col}' ({FIELD_LABELS[col]})"
+        for col in EXPECTED_FEATURE_COLUMNS
+        if col not in data or _is_missing(data[col])
+    ]
 
-    Returns:
-        (is_valid, list_of_error_messages)
-    """
+
+def _categorical_errors(data: Dict[str, Any]) -> List[str]:
     errors: List[str] = []
-
-    # Check for missing required features
-    if not isinstance(data, dict):
-        return False, ["Customer input must be a dictionary of field values."]
-
-    for col in EXPECTED_FEATURE_COLUMNS:
-        if col not in data or _is_missing(data[col]):
-            errors.append(f"Missing required field: '{col}' ({FIELD_LABELS[col]})")
-
-    if errors:
-        return False, errors
-
-    # Categorical validations
     for col, allowed in VALID_CATEGORIES.items():
         value = data[col]
         if not isinstance(value, str):
@@ -288,8 +284,12 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
                 f"Invalid value {value!r} for {FIELD_LABELS[col]}. "
                 f"Allowed values: {', '.join(allowed)}."
             )
+    return errors
 
-    # Numerical validations
+
+def _numeric_errors(data: Dict[str, Any]) -> Tuple[Dict[str, float], List[str]]:
+    """Returns the parsed numeric fields and the problems found with them."""
+    errors: List[str] = []
     numbers: Dict[str, float] = {}
     for col, (low, high) in NUMERIC_RANGES.items():
         try:
@@ -311,72 +311,85 @@ def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
         elif col == "tenure" and not float(numbers[col]).is_integer():
             # preprocess_input casts tenure to int, so 12.7 would silently become 12
             errors.append("Tenure must be a whole number of months.")
+    return numbers, errors
 
-    # Billing consistency: TotalCharges should roughly equal MonthlyCharges * tenure.
-    # In the Telco dataset the ratio is always between ~0.69 and ~1.57, so 0.5 - 2.0 is generous.
-    if not errors:
-        tenure, monthly, total = numbers["tenure"], numbers["MonthlyCharges"], numbers["TotalCharges"]
-        if tenure == 0:
-            if total > monthly:
-                errors.append(
-                    "TotalCharges cannot be more than MonthlyCharges for a new customer (tenure 0)."
-                )
-        else:
-            expected = monthly * tenure
-            low, high = BILLING_RATIO_RANGE
-            if not expected * low <= total <= expected * high:
-                errors.append(
-                    f"TotalCharges (${total:,.2f}) does not match MonthlyCharges x tenure "
-                    f"(about ${expected:,.2f}). Please double check the billing values."
-                )
 
-    # Consistency checks: PhoneService
+def _billing_errors(numbers: Dict[str, float]) -> List[str]:
+    """TotalCharges should roughly equal MonthlyCharges * tenure.
+
+    In the Telco dataset the ratio is always between ~0.69 and ~1.57, so 0.5 - 2.0 is generous.
+    """
+    tenure, monthly, total = numbers["tenure"], numbers["MonthlyCharges"], numbers["TotalCharges"]
+    if tenure == 0:
+        if total > monthly:
+            return ["TotalCharges cannot be more than MonthlyCharges for a new customer (tenure 0)."]
+        return []
+
+    expected = monthly * tenure
+    low, high = BILLING_RATIO_RANGE
+    if not expected * low <= total <= expected * high:
+        return [
+            f"TotalCharges (${total:,.2f}) does not match MonthlyCharges x tenure "
+            f"(about ${expected:,.2f}). Please double check the billing values."
+        ]
+    return []
+
+
+def _phone_consistency_errors(data: Dict[str, Any]) -> List[str]:
     if data.get("PhoneService") == "No":
         if data.get("MultipleLines") not in ("No phone service", "No"):
-            errors.append("When PhoneService is 'No', MultipleLines should be 'No phone service'.")
+            return ["When PhoneService is 'No', MultipleLines should be 'No phone service'."]
     elif data.get("PhoneService") == "Yes" and data.get("MultipleLines") == "No phone service":
-        errors.append("MultipleLines cannot be 'No phone service' when PhoneService is 'Yes'.")
-
-    # Consistency checks: InternetService
-    if data.get("InternetService") == "No":
-        for feat in INTERNET_DEPENDENT_COLUMNS:
-            if data.get(feat) not in ("No internet service", "No"):
-                errors.append(
-                    f"When InternetService is 'No', {feat} should be 'No internet service'."
-                )
-    elif data.get("InternetService") in ("DSL", "Fiber optic"):
-        for feat in INTERNET_DEPENDENT_COLUMNS:
-            if data.get(feat) == "No internet service":
-                errors.append(
-                    f"{feat} cannot be 'No internet service' when InternetService is "
-                    f"'{data['InternetService']}'."
-                )
-
-    is_valid = len(errors) == 0
-    return is_valid, errors
+        return ["MultipleLines cannot be 'No phone service' when PhoneService is 'Yes'."]
+    return []
 
 
-def preprocess_input(
-    raw_data: Union[Dict[str, Any], pd.DataFrame],
-    encoders: Dict[str, Any],
-    feature_names: List[str],
-) -> pd.DataFrame:
-    """Preprocesses a single dictionary input or DataFrame using fitted encoders.
+def _internet_consistency_errors(data: Dict[str, Any]) -> List[str]:
+    internet = data.get("InternetService")
+    if internet == "No":
+        return [
+            f"When InternetService is 'No', {feat} should be 'No internet service'."
+            for feat in INTERNET_DEPENDENT_COLUMNS
+            if data.get(feat) not in ("No internet service", "No")
+        ]
+    if internet in ("DSL", "Fiber optic"):
+        return [
+            f"{feat} cannot be 'No internet service' when InternetService is '{internet}'."
+            for feat in INTERNET_DEPENDENT_COLUMNS
+            if data.get(feat) == "No internet service"
+        ]
+    return []
 
-    Ensures exact feature ordering, conversion, and validation against encoder classes.
-    Raises:
-        ValueError: If unknown categorical values or missing columns are encountered.
+
+def validate_customer_input(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    """Validates input payload fields, ranges, and consistency.
+
+    Returns:
+        (is_valid, list_of_error_messages)
     """
-    if isinstance(raw_data, dict):
-        df = pd.DataFrame([raw_data])
-    else:
-        df = raw_data.copy()
+    if not isinstance(data, dict):
+        return False, ["Customer input must be a dictionary of field values."]
 
-    # Drop customerID if accidentally passed
-    if "customerID" in df.columns:
-        df = df.drop(columns=["customerID"])
+    errors = _missing_field_errors(data)
+    if errors:
+        return False, errors
 
-    # Convert numeric fields
+    errors += _categorical_errors(data)
+    numbers, numeric_errors = _numeric_errors(data)
+    errors += numeric_errors
+
+    # The billing cross-check only means something once every field is individually valid
+    if not errors:
+        errors += _billing_errors(numbers)
+
+    errors += _phone_consistency_errors(data)
+    errors += _internet_consistency_errors(data)
+
+    return not errors, errors
+
+
+def _coerce_numeric_columns(df: pd.DataFrame) -> None:
+    """Converts the numeric features in place, rejecting booleans, text and non-finite values."""
     if "TotalCharges" in df.columns:
         # blank TotalCharges means a brand new customer (same rule used in training)
         df["TotalCharges"] = df["TotalCharges"].replace({" ": "0.0", "": "0.0"}).fillna("0.0")
@@ -399,7 +412,9 @@ def preprocess_input(
                 raise ValueError(f"Feature '{col}' must contain whole numbers only.")
             df[col] = df[col].astype(int)
 
-    # Encode categoricals using existing fitted encoders
+
+def _encode_categoricals(df: pd.DataFrame, encoders: Dict[str, Any]) -> None:
+    """Encodes categorical columns in place with the fitted encoders (never refits)."""
     for col, enc in encoders.items():
         if col in df.columns and col != "Churn":
             if df[col].isna().any():
@@ -411,8 +426,31 @@ def preprocess_input(
                     f"Unseen category value(s) {unseen} for feature '{col}'. "
                     f"Valid categories are: {list(enc.classes_)}"
                 )
-            # Transform without refitting
             df[col] = enc.transform(df[col])
+
+
+def preprocess_input(
+    raw_data: Union[Dict[str, Any], pd.DataFrame],
+    encoders: Dict[str, Any],
+    feature_names: List[str],
+) -> pd.DataFrame:
+    """Preprocesses a single dictionary input or DataFrame using fitted encoders.
+
+    Ensures exact feature ordering, conversion, and validation against encoder classes.
+    Raises:
+        ValueError: If unknown categorical values or missing columns are encountered.
+    """
+    if isinstance(raw_data, dict):
+        df = pd.DataFrame([raw_data])
+    else:
+        df = raw_data.copy()
+
+    # Drop customerID if accidentally passed
+    if "customerID" in df.columns:
+        df = df.drop(columns=["customerID"])
+
+    _coerce_numeric_columns(df)
+    _encode_categoricals(df, encoders)
 
     # Reorder according to the trained model's feature names
     missing_features = [col for col in feature_names if col not in df.columns]
@@ -436,10 +474,9 @@ def get_risk_tier(prob_churn: float) -> str:
     """
     if prob_churn > 0.65:
         return "High"
-    elif prob_churn >= 0.35:
+    if prob_churn >= 0.35:
         return "Moderate"
-    else:
-        return "Low"
+    return "Low"
 
 
 def predict_churn(
@@ -634,15 +671,17 @@ def evaluate_model_on_dataset(
 
 def compare_with_benchmark(
     results: Dict[str, Any],
-    benchmark: Dict[str, Any] = SAVED_BENCHMARK_METRICS,
+    benchmark: Optional[Dict[str, Any]] = None,
     tolerance: float = 0.005,
 ) -> Tuple[bool, pd.DataFrame]:
     """Compares live evaluation results with the saved benchmark metrics.
 
     Returns (all_match, table) where the table has one row per metric with the
     saved value, the live value, the difference and whether it is within tolerance.
-    The confusion matrix has to match exactly.
+    The confusion matrix has to match exactly. benchmark defaults to SAVED_BENCHMARK_METRICS.
     """
+    if benchmark is None:
+        benchmark = SAVED_BENCHMARK_METRICS
     rows = []
     for metric in ("accuracy", "precision", "recall", "f1"):
         saved = float(benchmark[f"test_{metric}"])
@@ -673,10 +712,13 @@ def compare_with_benchmark(
 
 def explain_customer_risk(
     customer: Dict[str, Any],
-    churn_prob: float,
+    churn_prob: float,  # pylint: disable=unused-argument  # part of the public API used by app.py
 ) -> Dict[str, List[Dict[str, str]]]:
     """Analyzes a customer record against top XGBoost model drivers to produce
     explainable risk accelerators and protective anchors for decision support.
+
+    The factors are rule based, so churn_prob does not change them; it is accepted
+    so callers can pass the model output alongside the record.
     """
     risk_drivers: List[Dict[str, str]] = []
     protective_factors: List[Dict[str, str]] = []
@@ -744,7 +786,10 @@ def explain_customer_risk(
     if internet == "Fiber optic" and (security == "No" or support == "No"):
         risk_drivers.append({
             "factor": "Service Ecosystem",
-            "detail": "Premium Fiber Optic plan lacking Online Security / Tech Support add-ons reduces product stickiness.",
+            "detail": (
+                "Premium Fiber Optic plan lacking Online Security / Tech Support add-ons "
+                "reduces product stickiness."
+            ),
             "impact": "High Risk",
             "badge_color": "#dc2626",
         })
@@ -814,3 +859,73 @@ def score_customer_batch(
     return result_df.sort_values(by="Churn_Probability", ascending=False)
 
 
+def count_model_parameters(model: Any) -> int:
+    """Learned parameters of a fitted model, used to compare model size across paradigms.
+
+    Neural / quantum models: trainable weights. Gradient-boosted trees: every tree node (each
+    split stores a threshold, each leaf a value). Linear models: coefficients + intercepts.
+    Random forests: tree nodes.
+    """
+    if hasattr(model, "n_parameters"):
+        return int(model.n_parameters)
+    if hasattr(model, "get_booster"):
+        return int(len(model.get_booster().trees_to_dataframe()))
+    if hasattr(model, "coef_"):
+        return int(model.coef_.size + model.intercept_.size)
+    if hasattr(model, "estimators_"):
+        return int(sum(tree.tree_.node_count for tree in model.estimators_))
+    raise TypeError(f"Cannot count parameters of {type(model).__name__}.")
+
+
+def load_paradigm_model(model_path: str, feature_names: List[str]) -> Dict[str, Any]:
+    """Loads a DML / QML model saved by 02_paradigm_benchmark.py.
+
+    Returns the saved payload: model, display_name, test_metrics and trainable_parameters.
+    Raises:
+        FileNotFoundError: if the file does not exist (run 02_paradigm_benchmark.py).
+        ImportError: if torch / pennylane are not installed (requirements-research.txt).
+        ValueError: if the file is not a model payload or expects other input features.
+    """
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model artifact not found at: '{model_path}'")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with open(model_path, "rb") as f:
+            payload = pickle.load(f)
+
+    if not isinstance(payload, dict) or "model" not in payload:
+        raise ValueError(f"'{model_path}' is not a saved model payload.")
+    if payload.get("features_names") != feature_names:
+        raise ValueError(f"'{model_path}' was trained on different input features than the production model.")
+    return payload
+
+
+def predict_all_paradigms(
+    processed_df: pd.DataFrame,
+    models: Dict[str, Any],
+    threshold: float = 0.50,
+) -> List[Dict[str, Any]]:
+    """Scores one preprocessed customer with every available model.
+
+    Args:
+        processed_df: Output of preprocess_input (one row, production feature order).
+        models: Paradigm label ("ML", "DML", "QML") -> fitted model, in display order.
+        threshold: Decision threshold applied to every model.
+
+    Returns:
+        One dict per model with paradigm, churn_probability, prediction (1 = churn),
+        label ("Churn" / "Stay") and risk_tier.
+    """
+    results = []
+    for paradigm, model in models.items():
+        prediction, churn_prob, _, risk_tier = predict_churn(model, processed_df, threshold=threshold)
+        results.append(
+            {
+                "paradigm": paradigm,
+                "churn_probability": churn_prob,
+                "prediction": prediction,
+                "label": "Churn" if prediction == 1 else "Stay",
+                "risk_tier": risk_tier,
+            }
+        )
+    return results

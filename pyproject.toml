@@ -1,0 +1,33 @@
+# Tool configuration. pytest settings stay in pytest.ini.
+
+[tool.pylint.main]
+py-version = "3.12"
+jobs = 0
+ignore = [".venv", "venv", "churn_env", "customer-churn-predictior-main", "mlruns"]
+fail-under = 8.5
+
+[tool.pylint.basic]
+# Scripts are ordered with a numeric prefix (01_churn_prediction_xgboost.py), which dvc.yaml and the docs reference.
+module-rgx = "^([0-9]{2}_)?[a-z_][a-z0-9_]*$"
+# ML convention: X / X_train / X_test hold feature matrices (y_* already passes snake_case).
+good-names-rgxs = ["^X(_[a-z0-9]+)?$"]
+# Test functions are named after the behaviour they check, which is their documentation.
+no-docstring-rgx = "^(_|test_)"
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.classes]
+# scikit-learn estimator contract: __init__ only stores hyperparameters, fitted `attr_` values are set in fit.
+defining-attr-methods = ["__init__", "__new__", "setUp", "__post_init__", "fit", "_fit", "__setstate__"]
+
+[tool.pylint.design]
+# Data science entry points take paths plus split / threshold settings; 6 keeps them readable without config objects.
+max-args = 6
+max-positional-arguments = 6
+
+[tool.pylint.similarities]
+ignore-imports = true
+ignore-signatures = true
+# Customer records written as literals share runs of identical field values by coincidence.
+min-similarity-lines = 6
