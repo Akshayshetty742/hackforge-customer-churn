@@ -16,6 +16,7 @@ Customer Churn Prediction Model, Team Hackforge, Software Engineering Mini Proje
 | Document | Description |
 |---|---|
 | [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md) | Backlog items with story points, mapped to requirements and test cases |
+| [deliverables/Hackforge_Sprint_Report.docx](deliverables/Hackforge_Sprint_Report.docx) | Sprint report: velocity, burndown and burn-up charts, and the retrospective of each sprint (charts and data in [sprint-report/](sprint-report/)) |
 | [DEVIATIONS_AND_ENHANCEMENTS.md](DEVIATIONS_AND_ENHANCEMENTS.md) | How the delivered system extends the submitted documents |
 | [evidence/](evidence/) | Screenshots of the project board, pull requests, CI runs and application |
 | [evidence/videos/](evidence/videos/) | Sprint 1 and Sprint 2 demonstration videos |
