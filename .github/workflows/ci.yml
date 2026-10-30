@@ -4,13 +4,19 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Run Test Suite & Lint
+  core-tests:
+    name: Core Tests (application requirements only)
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -18,14 +24,47 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: requirements.txt
 
-      - name: Install dependencies
+      - name: Install application dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run automated tests
+        run: pytest -v
+
+  quality:
+    name: Lint, Full Test Suite, Coverage and Test Reports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements*.txt
+
+      - name: Install all dependencies (CPU-only PyTorch)
         run: |
-          pytest -v
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-research.txt -r requirements-dev.txt
+
+      - name: Static analysis (pylint, fail under 8.5)
+        run: pylint *.py tools
+
+      - name: Full test suite with statement and branch coverage (fail under 85%)
+        run: python tools/generate_test_reports.py
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: docs/test-reports/
