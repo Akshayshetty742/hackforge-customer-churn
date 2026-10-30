@@ -1,3 +1,4 @@
 # Everything needed to run the test suite and the linter locally.
 -r requirements-mlops.txt
 pylint>=3.2.0
+pytest-cov>=5.0.0
