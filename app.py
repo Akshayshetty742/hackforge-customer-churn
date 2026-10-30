@@ -15,13 +15,14 @@ import streamlit as st
 # Ensure local imports work reliably
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import customer_presets as cp
-import prediction_pipeline as pp
+import customer_presets as cp  # pylint: disable=wrong-import-position  # needs the sys.path entry above
+import prediction_pipeline as pp  # pylint: disable=wrong-import-position
 
+# Pick up edits to the helper modules on Streamlit reruns; best effort, the imported versions still work
 try:
     importlib.reload(pp)
     importlib.reload(cp)
-except Exception:
+except Exception:  # pylint: disable=broad-exception-caught
     pass
 
 # ---------------------------------------------------------
@@ -216,6 +217,53 @@ st.markdown(
         transition: width 0.5s ease;
     }
     
+    /* ML vs DML vs QML comparison cards */
+    .paradigm-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .paradigm-tag {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    .paradigm-model {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-top: 8px;
+    }
+    .paradigm-prob {
+        font-size: 2.4rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-top: 10px;
+        font-variant-numeric: tabular-nums;
+    }
+    .paradigm-sub {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+    .paradigm-verdict {
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+    .paradigm-foot {
+        font-size: 0.75rem;
+        color: #64748b;
+        border-top: 1px solid #f1f5f9;
+        margin-top: 12px;
+        padding-top: 8px;
+        font-variant-numeric: tabular-nums;
+    }
+
     /* Attribution Chips */
     .driver-chip-danger {
         background: #ffffff;
@@ -285,6 +333,26 @@ def get_cached_artifacts():
     return pp.load_artifacts()
 
 
+@st.cache_resource(show_spinner="Loading deep learning and quantum models...")
+def get_cached_paradigm_models(feature_names: list) -> dict:
+    """DML / QML payloads by paradigm, or the reason a model could not be loaded (str)."""
+    loaded = {}
+    for paradigm, path in pp.PARADIGM_MODEL_FILES.items():
+        try:
+            loaded[paradigm] = pp.load_paradigm_model(path, feature_names)
+        except ImportError:
+            loaded[paradigm] = "needs PyTorch and PennyLane: pip install -r requirements-research.txt"
+        except (FileNotFoundError, ValueError) as exc:
+            loaded[paradigm] = f"{exc} Run python 02_paradigm_benchmark.py to create it."
+    return loaded
+
+
+@st.cache_resource(show_spinner=False)
+def get_ml_parameter_count() -> int:
+    """Tree nodes in the production XGBoost model."""
+    return pp.count_model_parameters(get_cached_artifacts()[0])
+
+
 @st.cache_data(show_spinner=False)
 def run_live_evaluation(threshold: float) -> dict:
     """Cached so moving between pages / re-running doesn't re-score the whole test set."""
@@ -297,6 +365,7 @@ def run_live_evaluation(threshold: float) -> dict:
 # Every form widget has a key in st.session_state, so the values survive reruns
 # (e.g. after pressing a preset button and then submitting the form).
 def field_key(col: str) -> str:
+    """Session-state key of the form widget for a feature column."""
     return f"form_{col}"
 
 
@@ -335,6 +404,7 @@ def clear_form() -> None:
 
 
 def current_form_values() -> dict:
+    """Current form values keyed by feature column."""
     return {col: st.session_state.get(field_key(col)) for col in pp.EXPECTED_FEATURE_COLUMNS}
 
 
@@ -401,107 +471,138 @@ for _key in [field_key(c) for c in pp.EXPECTED_FEATURE_COLUMNS] + ["preset_choic
 
 
 def explain_customer_risk(customer: dict, churn_prob: float) -> dict:
-    """Analyzes customer record against top XGBoost model drivers to produce
-    explainable risk accelerators and protective anchors for decision support.
+    """Risk accelerators and protective anchors for the attribution panel.
+
+    The rules live in prediction_pipeline so the app, batch scoring and tests share one copy.
     """
-    if hasattr(pp, "explain_customer_risk"):
-        try:
-            return pp.explain_customer_risk(customer, churn_prob)
-        except Exception:
-            pass
+    return pp.explain_customer_risk(customer, churn_prob)
 
-    # Robust local fallback
-    risk_drivers = []
-    protective_factors = []
 
-    contract = customer.get("Contract")
-    if contract == "Month-to-month":
-        risk_drivers.append({
-            "factor": "Contract Type",
-            "detail": "Month-to-month contract (39.1% global feature importance) creates highest churn velocity.",
-            "impact": "High Risk",
-            "badge_color": "#dc2626",
-        })
-    elif contract in ("One year", "Two year"):
-        protective_factors.append({
-            "factor": "Contract Type",
-            "detail": f"{contract} contract provides institutional commitment and retention stability.",
-            "impact": "Protective",
-            "badge_color": "#16a34a",
-        })
+PARADIGM_STYLE = {
+    "ML": {"title": "Classical ML", "color": "#2563eb"},
+    "DML": {"title": "Deep Learning", "color": "#7c3aed"},
+    "QML": {"title": "Quantum ML", "color": "#0891b2"},
+}
 
-    try:
-        tenure = int(customer.get("tenure", 0))
-    except (ValueError, TypeError):
-        tenure = 0
 
-    if tenure <= 6:
-        risk_drivers.append({
-            "factor": "Account Tenure",
-            "detail": f"New customer ({tenure} months) in high-hazard early lifecycle onboarding window.",
-            "impact": "High Risk",
-            "badge_color": "#dc2626",
-        })
-    elif tenure >= 24:
-        protective_factors.append({
-            "factor": "Account Tenure",
-            "detail": f"Established customer relationship ({tenure} months) demonstrates brand loyalty.",
-            "impact": "Protective",
-            "badge_color": "#16a34a",
-        })
-
-    payment = customer.get("PaymentMethod")
-    if payment == "Electronic check":
-        risk_drivers.append({
-            "factor": "Payment Method",
-            "detail": "Electronic check carries elevated churn rates compared to automated options.",
-            "impact": "Moderate Risk",
-            "badge_color": "#d97706",
-        })
-    elif payment in ("Bank transfer (automatic)", "Credit card (automatic)"):
-        protective_factors.append({
-            "factor": "Payment Method",
-            "detail": f"Automated billing ({payment}) minimizes payment friction and involuntary churn.",
-            "impact": "Protective",
-            "badge_color": "#16a34a",
-        })
-
-    internet = customer.get("InternetService")
-    security = customer.get("OnlineSecurity")
-    support = customer.get("TechSupport")
-
-    if internet == "Fiber optic" and (security == "No" or support == "No"):
-        risk_drivers.append({
-            "factor": "Service Ecosystem",
-            "detail": "Premium Fiber Optic plan lacking Online Security / Tech Support add-ons reduces product stickiness.",
-            "impact": "High Risk",
-            "badge_color": "#dc2626",
-        })
-    elif security == "Yes" and support == "Yes":
-        protective_factors.append({
-            "factor": "Product Stickiness",
-            "detail": "Subscribed to Online Security and Tech Support add-ons (higher switching barrier).",
-            "impact": "Protective",
-            "badge_color": "#16a34a",
-        })
-
-    try:
-        monthly = float(customer.get("MonthlyCharges", 0))
-    except (ValueError, TypeError):
-        monthly = 0.0
-
-    if monthly > 80.0 and tenure < 12:
-        risk_drivers.append({
-            "factor": "Price Sensitivity",
-            "detail": f"High monthly billing (${monthly:,.2f}/mo) on newer account elevates price sensitivity.",
-            "impact": "Moderate Risk",
-            "badge_color": "#d97706",
-        })
-
-    return {
-        "risk_drivers": risk_drivers,
-        "protective_factors": protective_factors,
+def paradigm_details(ml_model, feature_names: list) -> tuple:
+    """(models, details, unavailable) for the three paradigms, in display order."""
+    benchmark = pp.SAVED_BENCHMARK_METRICS
+    models = {"ML": ml_model}
+    details = {
+        "ML": {
+            "name": "XGBoost (tuned, production)",
+            "roc_auc": benchmark["test_roc_auc"],
+            "recall": benchmark["test_recall"],
+            "parameters": get_ml_parameter_count(),
+        }
     }
+    unavailable = {}
+    for paradigm, payload in get_cached_paradigm_models(feature_names).items():
+        if isinstance(payload, str):
+            unavailable[paradigm] = payload
+            continue
+        model_obj = payload["model"]
+        name = "PyTorch MLP " + "-".join(str(units) for units in model_obj.hidden_layers) \
+            if paradigm == "DML" else f"PennyLane VQC · {model_obj.n_qubits} qubits, {model_obj.n_layers} layers"
+        models[paradigm] = model_obj
+        details[paradigm] = {
+            "name": name,
+            "roc_auc": payload["test_metrics"]["roc_auc"],
+            "recall": payload["test_metrics"]["churn_recall"],
+            "parameters": payload["trainable_parameters"],
+        }
+    return models, details, unavailable
+
+
+def paradigm_card(result: dict, detail: dict) -> str:
+    """HTML card with one model's prediction for the customer."""
+    style = PARADIGM_STYLE[result["paradigm"]]
+    prob = result["churn_probability"]
+    prob_color = "#dc2626" if prob >= 0.65 else "#d97706" if prob >= 0.35 else "#16a34a"
+    verdict_color = "#dc2626" if result["prediction"] == 1 else "#16a34a"
+    verdict = "Predicted to churn" if result["prediction"] == 1 else "Predicted to stay"
+    return f"""
+        <div class="paradigm-card" style="border-top: 4px solid {style['color']};">
+            <span class="paradigm-tag" style="background: {style['color']}1a; color: {style['color']};">
+                {result['paradigm']} · {style['title']}
+            </span>
+            <div class="paradigm-model">{detail['name']}</div>
+            <div class="paradigm-prob" style="color: {prob_color};">{prob * 100:.1f}%</div>
+            <div class="paradigm-sub">churn probability</div>
+            <div class="gauge-container">
+                <div class="gauge-fill" style="width: {min(100.0, prob * 100):.1f}%; background-color: {prob_color};"></div>
+            </div>
+            <div class="paradigm-verdict" style="color: {verdict_color};">{verdict}</div>
+            <div class="paradigm-sub">Risk tier: {result['risk_tier']}</div>
+            <div class="paradigm-foot">
+                Test ROC-AUC {detail['roc_auc']:.3f} · Recall {detail['recall'] * 100:.1f}%<br>
+                {detail['parameters']:,} learned parameters
+            </div>
+        </div>
+    """
+
+
+def paradigm_probability_chart(results: list, threshold: float) -> alt.LayerChart:
+    """Churn probability per paradigm with the decision threshold marked."""
+    data = pd.DataFrame(
+        {
+            "Paradigm": [f"{r['paradigm']} · {PARADIGM_STYLE[r['paradigm']]['title']}" for r in results],
+            "Churn probability": [r["churn_probability"] for r in results],
+            "color": [PARADIGM_STYLE[r["paradigm"]]["color"] for r in results],
+        }
+    )
+    bars = alt.Chart(data).mark_bar(cornerRadiusEnd=4, height=22).encode(
+        x=alt.X("Churn probability:Q", scale=alt.Scale(domain=[0, 1]), axis=alt.Axis(format="%")),
+        y=alt.Y("Paradigm:N", sort=None, title=None),
+        color=alt.Color("color:N", scale=None, legend=None),
+        tooltip=["Paradigm", alt.Tooltip("Churn probability:Q", format=".1%")],
+    )
+    rule = alt.Chart(pd.DataFrame({"threshold": [threshold]})).mark_rule(
+        color="#0f172a", strokeDash=[4, 4]
+    ).encode(x="threshold:Q")
+    return (bars + rule).properties(height=40 * len(results) + 30)
+
+
+def paradigm_agreement(results: list, threshold: float) -> tuple:
+    """(all_agree, message) summarising the paradigms' churn / stay calls."""
+    labels = {r["label"] for r in results}
+    probs = [r["churn_probability"] for r in results]
+    spread = f"Probabilities span {min(probs) * 100:.1f}% to {max(probs) * 100:.1f}%."
+    if len(labels) == 1:
+        return True, f"All {len(results)} paradigms predict **{labels.pop()}**. {spread}"
+    votes = ", ".join(f"{r['paradigm']}: **{r['label']}**" for r in results)
+    return False, f"The paradigms disagree at the {threshold * 100:.0f}% threshold ({votes}). {spread}"
+
+
+def render_paradigm_comparison(processed_df, ml_model, feature_names: list, threshold: float) -> None:
+    """Scores the validated customer with the ML, DML and QML models and shows them side by side."""
+    st.write("")
+    st.subheader("🧠 ML vs DML vs QML: Same Customer, Three Paradigms")
+    st.caption(
+        "The same validated input is scored by a classical gradient-boosted model, a deep neural network "
+        f"and a variational quantum circuit (simulated on CPU), all at the {threshold * 100:.0f}% decision threshold. "
+        "Test metrics are from the same held-out 1,409 customers."
+    )
+    try:
+        models, details, unavailable = paradigm_details(ml_model, feature_names)
+        results = pp.predict_all_paradigms(processed_df, models, threshold=threshold)
+    except Exception as exc:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
+        st.warning(f"Could not run the paradigm comparison: {exc}")
+        return
+
+    by_paradigm = {r["paradigm"]: r for r in results}
+    for column, paradigm in zip(st.columns(3), PARADIGM_STYLE):
+        with column:
+            if paradigm in by_paradigm:
+                st.markdown(paradigm_card(by_paradigm[paradigm], details[paradigm]), unsafe_allow_html=True)
+            else:
+                st.warning(f"**{paradigm} · {PARADIGM_STYLE[paradigm]['title']}** unavailable: {unavailable[paradigm]}")
+
+    if len(results) > 1:
+        st.altair_chart(paradigm_probability_chart(results, threshold), use_container_width=True)
+        agree, message = paradigm_agreement(results, threshold)
+        (st.success if agree else st.info)(message)
 
 
 def confusion_matrix_chart(cm) -> alt.LayerChart:
@@ -580,7 +681,7 @@ try:
     st.sidebar.success("Model: XGBoost Classifier (Tuned)")
     st.sidebar.caption(f"Feature inputs: {len(feature_names)}")
     st.sidebar.caption("Encoders: 15 categorical features")
-except Exception as e:
+except Exception as e:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
     load_error = str(e)
     st.sidebar.error("Error loading artifacts")
 
@@ -604,7 +705,7 @@ if nav_choice == "Customer Churn Prediction":
     else:
         st.subheader("Interactive Persona Quick-Cards")
         st.caption("One-click demonstration profiles for quick evaluation of different risk tiers:")
-        
+
         # 4 Interactive persona preset cards
         pq1, pq2, pq3, pq4 = st.columns(4)
         with pq1:
@@ -818,6 +919,7 @@ if nav_choice == "Customer Churn Prediction":
                             )
 
                         # Churn Probability Visual Gauge Meter
+                        # pylint: disable-next=invalid-name  # Streamlit page code runs at module level
                         gauge_color = "#dc2626" if churn_prob >= 0.65 else "#d97706" if churn_prob >= 0.35 else "#16a34a"
                         gauge_pct = min(100.0, max(0.0, churn_prob * 100))
                         st.markdown(
@@ -891,6 +993,8 @@ if nav_choice == "Customer Churn Prediction":
                             }
                         )
                         st.bar_chart(prob_df.set_index("Class"), height=200)
+
+                    render_paradigm_comparison(processed_df, model, feature_names, decision_threshold)
 
                     # Explainable Risk Attribution & Key Churn Drivers
                     st.write("")
@@ -1032,7 +1136,7 @@ if nav_choice == "Customer Churn Prediction":
                                 )
                             else:
                                 st.caption("No retention levers applied yet. Adjust the options above to simulate interventions.")
-                        except Exception as e:
+                        except Exception as e:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
                             st.warning(f"Could not compute counterfactual simulation: {e}")
 
                     st.markdown(
@@ -1051,7 +1155,7 @@ if nav_choice == "Customer Churn Prediction":
                 except ValueError as ex:
                     # raised by the preprocess_input boundary guards
                     st.error(f"Input could not be processed: {ex}", icon="🚫")
-                except Exception as ex:
+                except Exception as ex:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
                     st.error(f"Inference error: {ex}")
 
 
@@ -1081,7 +1185,7 @@ elif nav_choice == "Batch Customer Scoring":
                 raw_df = pp.load_dataset()
                 batch_df = raw_df.sample(n=min(100, len(raw_df)), random_state=42).copy()
                 st.caption(f"Loaded {len(batch_df)} verified customer accounts from holdout dataset.")
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
                 st.error(f"Could not load sample dataset: {e}")
         else:
             uploaded_file = st.file_uploader("Upload Customer CSV File", type=["csv"])
@@ -1089,7 +1193,7 @@ elif nav_choice == "Batch Customer Scoring":
                 try:
                     batch_df = pd.read_csv(uploaded_file)
                     st.success(f"Uploaded CSV with {len(batch_df)} records.")
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
                     st.error(f"Error parsing uploaded CSV: {e}")
 
         if batch_df is not None:
@@ -1116,7 +1220,7 @@ elif nav_choice == "Batch Customer Scoring":
                                 batch_df, model, encoders, feature_names, threshold=batch_threshold
                             )
                             st.session_state["last_batch_results"] = scored_results
-                        except Exception as e:
+                        except Exception as e:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
                             st.error(f"Batch inference failed: {e}")
                             st.session_state["last_batch_results"] = None
 
@@ -1290,7 +1394,7 @@ elif nav_choice == "Model Evaluation":
 
                 st.write("**Classification Report:**")
                 st.dataframe(classification_report_frame(results["classification_report"]), use_container_width=True)
-            except Exception as ex:
+            except Exception as ex:  # pylint: disable=broad-exception-caught  # UI boundary: shown to the user
                 st.error(f"Live evaluation failed: {ex}")
 
 
