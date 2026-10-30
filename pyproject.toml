@@ -31,3 +31,20 @@ ignore-imports = true
 ignore-signatures = true
 # Customer records written as literals share runs of identical field values by coincidence.
 min-similarity-lines = 6
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "test_*.py",
+    "conftest.py",
+    "traceability.py",
+    "tools/*",
+    ".venv/*",
+    "customer-churn-predictior-main/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 85  # NFR-13: statement + branch coverage of the application modules
