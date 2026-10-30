@@ -1,123 +1,128 @@
-import pandas as pd
-import numpy as np
+"""End-to-End Multi-Model Customer Churn Pipeline with MLflow & DVC.
+
+Supports training and comparing multiple model families:
+1. Logistic Regression (Linear baseline with class weights)
+2. Random Forest (Bagging ensemble with GridSearch)
+3. XGBoost (Gradient boosting with scale_pos_weight & GridSearch)
+
+Tracks all runs in MLflow for side-by-side leaderboard comparison, keeps the best
+model by params.yaml model.champion_metric, and produces DVC metrics and plots for
+reproducible pipelines. Set MLFLOW_TRACKING_URI to log to a tracking server.
+"""
+
+from __future__ import annotations
+
+import json
+import os
 import pickle
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-from sklearn.utils import resample
-from xgboost import XGBClassifier
-import warnings
+import sys
+from typing import Any, Callable, Dict, List, Tuple
 
-warnings.filterwarnings('ignore')
+import mlflow
+from sklearn.metrics import classification_report
 
-# 1. Data Loading
-print("Loading data...")
-try:
-    df = pd.read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
-    print("Data loaded successfully.")
-except FileNotFoundError:
-    print("Error: Dataset not found in current directory or project folder.")
-    exit(1)
+import classical_models as cm
+import training_common as tc
 
-# 2. Preprocessing
-print("Preprocessing data...")
-# Drop customerID
-if "customerID" in df.columns:
-    df = df.drop(columns=["customerID"])
+METRICS_FILE = os.path.join(tc.BASE_DIR, "metrics.json")
+REPORT_FILE = os.path.join(tc.BASE_DIR, "classification_report.json")
+OUTPUT_MODEL_FILE = os.path.join(tc.BASE_DIR, "customer_churn_model_xgboost.pkl")
+OUTPUT_ENCODERS_FILE = os.path.join(tc.BASE_DIR, "encoders.pkl")
 
-# Handle TotalCharges - replace empty strings with 0 and convert to float
-df["TotalCharges"] = df["TotalCharges"].replace({" ": "0.0"})
-df["TotalCharges"] = df["TotalCharges"].astype(float)
 
-# Label Encoding for categorical columns
-object_columns = df.select_dtypes(include="object").columns
-encoders = {}
-for column in object_columns:
-    label_encoder = LabelEncoder()
-    df[column] = label_encoder.fit_transform(df[column])
-    encoders[column] = label_encoder
+Trainer = Callable[[tc.DataSplit, Dict[str, Any]], tc.TrainedModel]
 
-# Save encoders (Important: These must be consistent with the model)
-output_path_encoders = "encoders.pkl"
-with open(output_path_encoders, "wb") as f:
-    pickle.dump(encoders, f)
-print(f"Encoders saved to '{output_path_encoders}'.")
-
-# 3. Train-Test Split
-X = df.drop(columns=["Churn"])
-y = df["Churn"]
-
-# Split data FIRST (before downsampling) to keep test data pure
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-
-print(f"Original training shape: {X_train.shape}")
-print(f"Original target distribution:\n{y_train.value_counts()}")
-
-# 4. XGBoost with Class Weights (Handling Imbalance without deleting data)
-print("\nCalculating class weights...")
-# scale_pos_weight = total_negative_examples / total_positive_examples
-# This tells the model to pay more attention to the minority class
-count_minority = y_train.sum()
-count_majority = len(y_train) - count_minority
-ratio = count_majority / count_minority
-print(f"Majority/Minority Ratio: {ratio:.2f}")
-
-# 5. Hyperparameter Tuning
-print("\nStarting Hyperparameter Tuning with XGBoost & GridSearchCV...")
-
-# Define the parameter grid
-param_grid = {
-    'n_estimators': [100, 200],
-    'max_depth': [3, 4, 5],           # Kept low to prevent overfitting on the larger dataset
-    'learning_rate': [0.05, 0.1],     # Standard rates
-    'subsample': [0.8],               
-    'colsample_bytree': [0.8],
-    'scale_pos_weight': [ratio]       # Use the calculated ratio
+# Training order for model.type "all"; keys are the accepted model.type values.
+TRAINERS: Dict[str, Trainer] = {
+    "logistic_regression": cm.train_logistic_regression,
+    "random_forest": cm.train_random_forest,
+    "xgboost": cm.train_xgboost,
 }
 
-# specific to XGBoost: scale_pos_weight helps with imbalance
-xgb = XGBClassifier(eval_metric='logloss', random_state=42)
 
-# Use StratifiedKFold for robust validation
-cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+def select_trainers(model_mode: str) -> List[Trainer]:
+    """Trainers to run for params.yaml model.type."""
+    if model_mode == "all":
+        return list(TRAINERS.values())
+    if model_mode not in TRAINERS:
+        raise ValueError(f"Unknown model.type '{model_mode}'. Use 'all' or one of: {', '.join(TRAINERS)}.")
+    return [TRAINERS[model_mode]]
 
-grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, 
-                           cv=cv, n_jobs=-1, verbose=1, scoring='accuracy')
 
-# Train on the FULL X_train (no downsampling)
-grid_search.fit(X_train, y_train)
+def select_champion(
+    results: List[Tuple[tc.TrainedModel, Dict[str, Any]]],
+    metric: str,
+) -> Tuple[tc.TrainedModel, Dict[str, Any]]:
+    """Best (model, metrics) pair by the given metric; earlier models win ties."""
+    if metric not in results[0][1]:
+        raise ValueError(f"Unknown model.champion_metric '{metric}'. Use one of: {', '.join(results[0][1])}.")
+    return max(results, key=lambda result: result[1][metric])
 
-best_model = grid_search.best_estimator_
-print(f"\nBest Parameters found: {grid_search.best_params_}")
 
-# 6. Evaluation
-print("\nEvaluating model...")
-y_train_pred = best_model.predict(X_train) 
-y_test_pred = best_model.predict(X_test)
+def export_champion(
+    champion: tc.TrainedModel,
+    metrics: Dict[str, Any],
+    split: tc.DataSplit,
+    encoders: Dict[str, Any],
+) -> None:
+    """Writes the DVC outputs: model + encoders (same run), metrics, report and standard plots."""
+    with open(OUTPUT_MODEL_FILE, "wb") as handle:
+        pickle.dump({"model": champion.model, "features_names": split.feature_names}, handle)
+    with open(OUTPUT_ENCODERS_FILE, "wb") as handle:
+        pickle.dump(encoders, handle)
+    print(f"Production model ({champion.display_name}) saved to '{OUTPUT_MODEL_FILE}'.")
+    print(f"Encoders saved to '{OUTPUT_ENCODERS_FILE}'.")
 
-train_accuracy = accuracy_score(y_train, y_train_pred)
-test_accuracy = accuracy_score(y_test, y_test_pred)
+    preds = tc.predict_test(champion.model, split)
+    tc.save_evaluation_plots(champion.model, split, preds, "Production Model")
 
-print(f"Training Accuracy: {train_accuracy:.4f}")
-print(f"Test Accuracy: {test_accuracy:.4f}")
+    with open(METRICS_FILE, "w", encoding="utf-8") as handle:
+        json.dump(metrics, handle, indent=2)
+    with open(REPORT_FILE, "w", encoding="utf-8") as handle:
+        json.dump(classification_report(split.y_test, preds.y_pred, output_dict=True), handle, indent=2)
 
-# Check for overfitting
-diff = train_accuracy - test_accuracy
-if diff > 0.1:
-    print("Warning: Potential overfitting detected.")
-else:
-    print("Model generalization looks reasonable (Gap is small).")
 
-print("\nConfusion Matrix:")
-print(confusion_matrix(y_test, y_test_pred))
+def run_training_pipeline(config: Dict[str, Any]) -> None:
+    """Prepares the data, trains and logs every selected model, then exports the champion."""
+    model_mode = str(config["model"].get("type", "all")).lower()
+    champion_metric = str(config["model"].get("champion_metric", "roc_auc"))
+    trainers = select_trainers(model_mode)
 
-print("\nClassification Report:")
-print(classification_report(y_test, y_test_pred))
+    print("\n[1/4] Loading, cleaning and encoding the Telco Customer Churn dataset...")
+    split, encoders = tc.prepare_data(config)
+    print(f"Train samples: {len(split.X_train)}, Test samples: {len(split.X_test)}")
+    print(f"Minority ratio (scale_pos_weight): {split.scale_pos_weight:.2f}")
 
-# 7. Save Model
-output_path_model = "customer_churn_model_xgboost.pkl"
-model_data = {"model": best_model, "features_names": X.columns.tolist()}
-with open(output_path_model, "wb") as f:
-    pickle.dump(model_data, f)
+    print(f"\n[2/4] Multi-Model Training (Mode: '{model_mode}')...")
+    mlflow.set_experiment(tc.EXPERIMENT_NAME)
+    results = []
+    for trainer in trainers:
+        trained = trainer(split, config)
+        results.append((trained, tc.evaluate_and_log_run(trained, split)))
 
-print(f"\nXGBoost model saved to '{output_path_model}'")
+    print(f"\n[3/4] Selecting champion by '{champion_metric}'...")
+    champion, champion_metrics = select_champion(results, champion_metric)
+    print(f"Champion: {champion.display_name} ({champion_metric} = {champion_metrics[champion_metric]:.4f})")
+
+    print("\n[4/4] Finalizing DVC artifacts...")
+    export_champion(champion, champion_metrics, split, encoders)
+
+    print("\n" + "=" * 65)
+    print(" MULTI-MODEL BENCHMARK COMPLETE")
+    print("=" * 65)
+    print(f"• MLflow tracking URI:        {mlflow.get_tracking_uri()}")
+    print("• DVC Metrics Table:          dvc metrics show")
+    print("=" * 65)
+
+
+def main() -> None:
+    """CLI entry point (python 01_churn_prediction_xgboost.py / dvc repro)."""
+    tc.configure_runtime()
+    try:
+        run_training_pipeline(tc.load_config())
+    except (FileNotFoundError, ValueError) as exc:
+        sys.exit(f"Error: {exc}")
+
+
+if __name__ == "__main__":
+    main()

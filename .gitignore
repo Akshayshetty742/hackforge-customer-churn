@@ -31,3 +31,12 @@ customer-churn-predictior-main/
 
 # Word documents / rubrics
 *.docx
+
+# DVC tracked files
+/WA_Fn-UseC_-Telco-Customer-Churn.csv
+/customer_churn_model_xgboost.pkl
+/encoders.pkl
+
+# MLflow tracking
+mlruns/
+mlflow.db

@@ -1,0 +1,66 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python 01_churn_prediction_xgboost.py
+    deps:
+    - path: 01_churn_prediction_xgboost.py
+      hash: md5
+      md5: e96f8e9c5f0ea85fcb1185ee214f32ed
+      size: 17936
+    - path: WA_Fn-UseC_-Telco-Customer-Churn.csv
+      hash: md5
+      md5: 0f9de68e012bd3aed5fa7cdc9fc421af
+      size: 977501
+    params:
+      params.yaml:
+        prepare:
+          test_size: 0.2
+          random_state: 42
+          target_column: Churn
+        train:
+          cv_splits: 3
+          scoring: accuracy
+          eval_metric: logloss
+          param_grid:
+            n_estimators:
+            - 100
+            - 200
+            max_depth:
+            - 3
+            - 4
+            learning_rate:
+            - 0.02
+            - 0.05
+            subsample:
+            - 0.8
+            colsample_bytree:
+            - 0.8
+    outs:
+    - path: classification_report.json
+      hash: md5
+      md5: 691cd90591ce51f3bff92e8fd6a0dffd
+      size: 626
+    - path: customer_churn_model_xgboost.pkl
+      hash: md5
+      md5: f324727ee853bade680832a1aad2da3f
+      size: 335192
+    - path: encoders.pkl
+      hash: md5
+      md5: 942666da66d22d93d4affa6a61adb2a1
+      size: 1635
+    - path: metrics.json
+      hash: md5
+      md5: 2df367b0f8007563551014296c2fa03c
+      size: 312
+    - path: plots/confusion_matrix.png
+      hash: md5
+      md5: 68621862479421364b3109c208208d73
+      size: 39263
+    - path: plots/feature_importance.png
+      hash: md5
+      md5: 7ae721fb746601555194b42ea6af2927
+      size: 67812
+    - path: plots/roc_curve.png
+      hash: md5
+      md5: ad53cde0678862d377e0e56c65b2d570
+      size: 83183

@@ -2,7 +2,9 @@
 
 These run the real app script headless, so no browser is needed.
 """
+# pylint: disable=redefined-outer-name  # pytest injects fixtures by parameter name
 
+import importlib.util
 import os
 
 import pytest
@@ -17,20 +19,24 @@ HIGH_RISK = "High risk: new fiber customer"
 
 @pytest.fixture
 def app():
+    """Fresh headless run of the Streamlit app."""
     return AppTest.from_file(APP_FILE, default_timeout=60).run()
 
 
 def click(at, label):
+    """Clicks the button with this label and reruns the app."""
     next(b for b in at.button if b.label == label).click()
     return at.run()
 
 
 def submit(at):
+    """Submits the prediction form."""
     next(b for b in at.button if b.label == "Run Churn Prediction").click()
     return at.run()
 
 
 def risk_pills(at):
+    """Text of the rendered risk result pills."""
     return [m.value for m in at.markdown if "RISK" in m.value]
 
 
@@ -94,11 +100,13 @@ def test_estimated_total_charges(app):
 
 
 def open_evaluation(at):
+    """Switches the sidebar to the Model Evaluation page."""
     at.sidebar.radio[0].set_value("Model Evaluation").run()
     return at
 
 
 def run_live(at):
+    """Runs the live held-out evaluation on the evaluation page."""
     next(b for b in at.button if b.label.startswith("Run Test Evaluation")).click()
     return at.run()
 
@@ -124,3 +132,33 @@ def test_live_results_survive_page_switch(app):
     app.sidebar.radio[0].set_value("About the Project").run()
     open_evaluation(app)
     assert any("match the verified benchmark" in s.value for s in app.success)
+
+
+def paradigm_cards(at):
+    """Markdown of the rendered ML / DML / QML comparison cards."""
+    return [m.value for m in at.markdown if 'class="paradigm-card"' in m.value]
+
+
+def test_prediction_shows_all_three_paradigms(app):
+    app.selectbox(key="preset_choice").select(HIGH_RISK).run()
+    click(app, "Load preset")
+    submit(app)
+    assert not app.exception
+    cards = paradigm_cards(app)
+    research_installed = all(importlib.util.find_spec(m) for m in ("torch", "pennylane"))
+    if research_installed:
+        assert len(cards) == 3
+        for tag in ("ML · Classical ML", "DML · Deep Learning", "QML · Quantum ML"):
+            assert any(tag in card for card in cards), tag
+        assert any("paradigms predict" in s.value or "paradigms disagree" in s.value
+                   for s in list(app.success) + list(app.info))
+    else:
+        # Without the research extras the page still works and says why DML / QML are missing
+        assert len(cards) == 1
+        assert sum("requirements-research.txt" in w.value for w in app.warning) == 2
+
+
+def test_no_paradigm_comparison_for_invalid_input(app):
+    click(app, "Clear form")
+    submit(app)
+    assert paradigm_cards(app) == []

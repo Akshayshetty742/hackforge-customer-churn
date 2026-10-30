@@ -1,0 +1,13 @@
+{
+  "train_accuracy": 0.7952,
+  "test_accuracy": 0.7566,
+  "generalization_gap": 0.0386,
+  "churn_recall": 0.7941,
+  "churn_precision": 0.5275,
+  "churn_f1_score": 0.6339,
+  "roc_auc": 0.8463,
+  "confusion_matrix_tp": 297,
+  "confusion_matrix_fp": 266,
+  "confusion_matrix_tn": 769,
+  "confusion_matrix_fn": 77
+}
