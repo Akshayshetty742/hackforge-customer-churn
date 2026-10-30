@@ -4,12 +4,22 @@ This guide explains the codebase structure, the rationale behind technical decis
 
 ## 1. Project Architecture
 
-The project is a standalone Python script (`01_churn_prediction_xgboost.py`) that performs an end-to-end machine learning workflow:
-1.  **Data Ingestion:** Reads CSV data.
-2.  **Preprocessing:** Cleans and encodes data for machine learning.
-3.  **Model Training:** Uses XGBoost with Cross-Validation.
-4.  **Evaluation:** Generates detailed performance metrics.
-5.  **Serialization:** Saves the model and encoders for future use.
+The project is organised in layers (see `docs/SAD_v1.1_Addendum.md` for the diagrams):
+
+| Layer | Files | Role |
+| :--- | :--- | :--- |
+| Presentation | `app.py`, `customer_presets.py` | Streamlit web application and sample customers |
+| Service | `prediction_pipeline.py` | Validation, preprocessing, prediction, evaluation, batch scoring, explanation, paradigm model loading |
+| Models | `classical_models.py`, `dml_model.py`, `qml_model.py` | Classical (XGBoost, Logistic Regression, Random Forest), deep learning (PyTorch MLP) and quantum (PennyLane VQC) models |
+| Training | `training_common.py`, `01_churn_prediction_xgboost.py`, `02_paradigm_benchmark.py` | Shared data split, metrics, plots and MLflow logging; classical training; ML vs DML vs QML benchmark |
+| Configuration | `params.yaml`, `dvc.yaml`, `pyproject.toml` | Pipeline settings, DVC stages, pylint and coverage settings |
+
+The machine learning workflow is unchanged from the first release:
+1.  **Data Ingestion:** Reads the CSV data (`prediction_pipeline.load_dataset`).
+2.  **Preprocessing:** Cleans and label-encodes the data (`training_common.prepare_data`).
+3.  **Model Training:** XGBoost with stratified cross-validated grid search (`classical_models.train_xgboost`).
+4.  **Evaluation:** Metrics, plots and an MLflow run for every model (`training_common.evaluate_and_log_run`).
+5.  **Serialization:** Saves the model and encoders together.
 
 ## 2. Key Decisions & Rationale
 
@@ -34,17 +44,39 @@ We explicitly limit the model's complexity to ensure it learns patterns, not noi
 ## 3. Code Walkthrough
 
 ### Dependencies
-The project relies on a virtual environment (`churn_env`) to manage:
--   `pandas`, `numpy`: Data manipulation.
--   `sklearn`: Splitting, encoding, and metrics.
--   `xgboost`: The core modeling library.
+Install from the `requirements*.txt` files described in the README. Each file includes the previous one:
+-   `requirements.txt`: pandas, numpy, scikit-learn, XGBoost, Streamlit, Altair (the application).
+-   `requirements-mlops.txt`: MLflow, DVC, PyYAML, matplotlib, seaborn (training and tracking).
+-   `requirements-dev.txt`: pylint, pytest-cov (quality checks).
+-   `requirements-research.txt`: PyTorch, PennyLane (deep and quantum models).
 
-### The Pipeline (`01_churn_prediction_xgboost.py`)
--   **Lines 1-30 (Preprocessing):** Standard cleaning. Note that `TotalCharges` is converted to numeric, and empty strings are handled.
--   **Lines 33-44 (Encoding):** `LabelEncoder` transforms text to numbers.
-    -   *Crucial:* The encoders are saved to `encoders.pkl`. You **MUST** use these same encoders when predicting on new data to ensure mapping consistency (e.g., "Yes" is always `1`).
--   **Lines 50-55 (Splitting):** `train_test_split` with `stratify=y` ensures the test set represents the real world.
--   **Lines 84-100 (Tuning):** `GridSearchCV` searches for the best hyperparameters. It uses 3-fold cross-validation to validate results accurately.
+### Shared training code (`training_common.py`)
+-   **`load_config`**: reads `params.yaml` over built-in defaults, so a missing or broken file still gives a working run.
+-   **`prepare_data`**: cleans the CSV with the same rules as the application, label-encodes the text columns and makes the stratified split (`test_size=0.2`, `random_state=42`). Every model in both scripts uses this one split.
+    -   *Crucial:* The encoders are saved to `encoders.pkl` with the model. You **MUST** use these same encoders when predicting on new data so that, for example, "Yes" is always mapped to the same number.
+-   **`evaluate_and_log_run`**: scores a trained model on the held-out split, writes its plots and logs parameters, metrics and the model to MLflow.
+
+### Classical training (`01_churn_prediction_xgboost.py`, `classical_models.py`)
+-   `TRAINERS` lists the model families; `params.yaml` `model.type` chooses which to train.
+-   XGBoost is tuned with `GridSearchCV` and 3-fold `StratifiedKFold` over `train.param_grid`, with `scale_pos_weight` set from the training data.
+-   The best model by `model.champion_metric` (ROC-AUC) is exported with its encoders, together with `metrics.json`, `classification_report.json` and the plots tracked by DVC.
+
+### Deep and quantum models (`dml_model.py`, `qml_model.py`)
+-   `TorchTabularClassifier` gives PyTorch models the scikit-learn interface (`fit`, `predict_proba`, `predict`). It handles preprocessing, class-weighted loss, Adam, early stopping on a validation slice, and pickling.
+-   `ChurnMLPClassifier` builds the deep network: Linear, BatchNorm, ReLU and Dropout per hidden layer.
+-   `VariationalQuantumClassifier` reduces the inputs to one feature per qubit with PCA, scales them to rotation angles, and builds a PennyLane circuit (angle embedding re-uploaded before each entangling layer, Pauli-Z measurements, linear output).
+-   On macOS, PyTorch and XGBoost ship separate OpenMP runtimes. `dml_model.py` imports XGBoost before PyTorch and runs PyTorch single-threaded (`single_threaded_torch`) so both can be used in one process.
+
+### Paradigm benchmark (`02_paradigm_benchmark.py`)
+-   `build_plan` reads `paradigms.include` from `params.yaml` and returns one trainer per paradigm.
+-   Each model is evaluated with the same code, tagged `ML`, `DML` or `QML` in MLflow, and the DML and QML models are saved to `models/` for the application.
+-   It never writes the production model.
+
+### Tests and traceability
+-   Test Plan test cases, the requirements they verify and the tests that run them are listed in `traceability.py`. `conftest.py` tags each test with its test case ID.
+-   `test_system_validation.py` runs the training pipeline and the benchmark end to end with every output redirected to a temporary folder.
+-   `python tools/generate_test_reports.py` runs the suite with coverage and pylint and writes the reports in `docs/test-reports/`.
+-   When you add a feature, add or extend a test case in `traceability.py` and tag the new tests with `@pytest.mark.tc("TC-xx")`.
 
 ## 4. Deployment & Usage
 
@@ -53,34 +85,30 @@ To use this model in an application (e.g., a web service), you need two artifact
 1.  `customer_churn_model_xgboost.pkl`: The trained XGBoost model.
 2.  `encoders.pkl`: The dictionary of LabelEncoders.
 
+The deep learning and quantum models used by the application are in `models/dml_model.pkl` and `models/qml_model.pkl` (written by `02_paradigm_benchmark.py`).
+
 ### Example Prediction Code
 ```python
-import pickle
-import pandas as pd
+import customer_presets as cp
+import prediction_pipeline as pp
 
-# 1. Load Artifacts
-with open('customer_churn_model_xgboost.pkl', 'rb') as f:
-    model_data = pickle.load(f)
-model = model_data['model']
+# 1. Load the model, its feature order and its encoders (always as one pair)
+model, features, encoders = pp.load_artifacts()
 
-with open('encoders.pkl', 'rb') as f:
-    encoders = pickle.load(f)
+# 2. A customer record with all 19 fields (here: a sample customer)
+customer = cp.get_preset_values("High risk: new fiber customer")
 
-# 2. Prepare New Data (Example)
-new_customer = pd.DataFrame({
-    'gender': ['Male'],
-    'SeniorCitizen': [0],
-    # ... include all other columns ...
-})
+# 3. Encode in training column order and predict
+X = pp.preprocess_input(customer, encoders, features)
+label, churn_prob, _, risk_tier = pp.predict_churn(model, X, threshold=0.5)
+print("Churn" if label == 1 else "Stay", f"{churn_prob:.1%}", risk_tier)
 
-# 3. Apply Encoders
-for col, encoder in encoders.items():
-    if col in new_customer.columns:
-        new_customer[col] = encoder.transform(new_customer[col])
-
-# 4. Predict
-prediction = model.predict(new_customer)
-print("Churn Prediction:", "Yes" if prediction[0] == 1 else "No")
+# 4. The same customer scored by all three paradigms
+models = {"ML": model}
+for paradigm, path in pp.PARADIGM_MODEL_FILES.items():
+    models[paradigm] = pp.load_paradigm_model(path, features)["model"]
+for result in pp.predict_all_paradigms(X, models):
+    print(result["paradigm"], f"{result['churn_probability']:.1%}", result["label"], result["risk_tier"])
 ```
 
 ## 5. Input Validation & Boundary Guards
@@ -116,12 +144,13 @@ if not ok:
 else:
     model, features, encoders = pp.load_artifacts()
     X = pp.preprocess_input(record, encoders, features)
-    label, churn_prob, _ = pp.predict_churn(model, X)
+    label, churn_prob, _, risk_tier = pp.predict_churn(model, X)
 ```
 
 If the model is ever retrained with new category values, update `VALID_CATEGORIES`. The test `test_valid_categories_match_fitted_encoders` fails until the two match.
 
 ## 6. Future Improvements
-To further increase accuracy (target: >80%):
 1.  **Feature Engineering:** Create new features like `TenureYears` (binning months) or `HasStreamingService` (combining TV/Movies).
-2.  **Threshold Tuning:** Adjust the classification threshold. By default, probability > 0.5 is "Churn". Lowering to 0.4 might catch more churners (higher Recall) at the cost of Precision.
+2.  **Ensembling:** The three paradigms make different mistakes; averaging their probabilities could improve recall on borderline customers.
+3.  **Quantum hardware:** Run the variational quantum classifier on a real quantum device through PennyLane.
+4.  **Monitoring:** Track input drift and schedule retraining through the DVC pipeline.

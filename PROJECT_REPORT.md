@@ -6,7 +6,7 @@
 ---
 
 ## 1. Abstract
-This project focuses on developing a robust Machine Learning solution to predict customer churn in a telecommunications dataset. By leveraging the XGBoost algorithm and implementing advanced techniques such as **Stratified K-Fold Cross-Validation**, **Hyperparameter Tuning (GridSearchCV)**, and **Class Weighting**, the final model achieves a strong balance between accuracy (76%) and recall (76%), specifically optimizing for the identification of at-risk customers while mitigating overfitting.
+This project focuses on developing a robust Machine Learning solution to predict customer churn in a telecommunications dataset. By leveraging the XGBoost algorithm and implementing advanced techniques such as **Stratified K-Fold Cross-Validation**, **Hyperparameter Tuning (GridSearchCV)**, and **Class Weighting**, the final model achieves a strong balance between accuracy (75.7%) and recall (75.1%), specifically optimizing for the identification of at-risk customers while mitigating overfitting. The project also compares this classical model with a deep learning model and a quantum machine learning model on the same data, and delivers all three predictions through an interactive web application.
 
 ---
 
@@ -66,7 +66,7 @@ The final optimized model yielded the following results on the Test Set:
 | Metric | Value | Interpretation |
 | :--- | :--- | :--- |
 | **Accuracy** | **76%** | The model is correct 3 out of 4 times overall. |
-| **Recall (Churn)** | **76%** | **Critical Success.** The model correctly identifies 76% of all customers who are actually leaving. |
+| **Recall (Churn)** | **75%** | **Critical Success.** The model correctly identifies 75% of all customers who are actually leaving. |
 | **Precision (Churn)** | **53%** | While acceptable, the model trades some precision (more false alarms) to ensure high recall. |
 | **F1-Score** | **0.62** | Indicates a balanced trade-off between Precision and Recall. |
 
@@ -79,160 +79,233 @@ The final optimized model yielded the following results on the Test Set:
 ---
 
 ## 5. Conclusion
-The project delivered a Customer Churn Prediction system. By moving beyond basic modeling to implement Class Weighting and Hyperparameter Tuning, it addresses the "Accuracy Paradox" where models look good but fail to catch churners. The final XGBoost model provides a basis for customer-retention decision support; deployment remains future scope.
+The project delivered a Customer Churn Prediction system. By moving beyond basic modeling to implement Class Weighting and Hyperparameter Tuning, it addresses the "Accuracy Paradox" where models look good but fail to catch churners. The final XGBoost model is delivered through a Streamlit decision support application, alongside deep learning and quantum machine learning models for comparison.
 
 ---
 
 ## 6. Future Scope
 -   **Feature Engineering:** Creating composite features like "Tenure Years" or "Family Bundle" flags.
--   **Deployment:** Wrapping the model in a Flask/FastAPI service for real-time predictions.
--   **Threshold Tuning:** Adjusting the probability threshold (e.g., from 0.5 to 0.4) to further increase Recall if business needs dictate.
+-   **Deployment:** Packaging the application in a container and serving the model through a REST API.
+-   **Monitoring:** Tracking data drift and scheduling retraining.
+-   **Quantum hardware:** Running the variational quantum classifier on real quantum hardware instead of a simulator.
 
 ---
 
 ## 7. Software Engineering Deliverable Part 2
 
-This section records the software engineering evidence available in the project repository, its GitHub Projects board, issue tracking records, pull-request workflow, and continuous integration pipeline. All deliverable requirements have been verified directly against the live GitHub project board, GitHub repository API, and automated test suite.
+This section records the software engineering process evidence: the GitHub Projects board, the backlog with story points, the sprints, the pull-request workflow and continuous integration.
 
 ### 7.1 GitHub Backlog and SRS Traceability
 
-The GitHub backlog contains six core issues corresponding to the Software Requirements Specification (SRS). All six issues are in the **Closed** state and have all acceptance criteria verified and checked directly on GitHub.
-
-| Issue | Backlog item | SRS reference | Sprint | Story points | GitHub status | Acceptance criteria |
-| :--- | :--- | :--- | :--- | :---: | :--- | :---: |
-| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | Interactive Customer Profile Input Form with Presets | SRS-FR-01 | Sprint 1 | 5 | Closed | 4/4 Checked |
-| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | Real-time XGBoost Prediction Engine and Probability Visualizer | SRS-FR-02 | Sprint 1 | 5 | Closed | 4/4 Checked |
-| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | Robust Input Validation and Boundary Guards | SRS-NFR-01 | Sprint 1 | 3 | Closed | 4/4 Checked |
-| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | Model Performance Benchmarking and Evaluation | SRS-FR-03 | Sprint 2 | 5 | Closed | 4/4 Checked |
-| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | Automated Tests for Validation and Prediction Pipeline | SRS-NFR-02 | Sprint 2 | 5 | Closed | 4/4 Checked |
-| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | GitHub Actions CI Workflow for Automated Verification | SRS-NFR-03 | Sprint 2 | 3 | Closed | 4/4 Checked |
-
-The acceptance criteria for issues [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1), [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3), and [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4)—which were previously closed with unchecked checklists—were inspected against the source code (`app.py`, `prediction_pipeline.py`, `customer_presets.py`) and validated by the automated test suite (`test_app.py`, `test_pipeline.py`). All criteria were confirmed satisfied by the implementation and have been updated to checked (`- [x]`) on GitHub.
+The backlog was created as GitHub issues from the requirements in the SRS, each with acceptance criteria, an SRS reference, story points, a sprint and an assignee. All Sprint 1 and Sprint 2 issues are closed with every acceptance criterion checked. The mapping of each issue to the detailed requirement IDs of SRS v1.1 and to its test cases is in [docs/TRACEABILITY_MATRIX.md](docs/TRACEABILITY_MATRIX.md).
 
 ### 7.2 Story Points and Sprint Configuration
 
-The project tracking board is hosted on GitHub Projects v2 at [Hackforge — Customer Churn Prediction (Deliverable Part 2)](https://github.com/users/Akshayshetty742/projects/1).
+The project board is hosted on GitHub Projects at [Hackforge — Customer Churn Prediction (Deliverable Part 2)](https://github.com/users/Akshayshetty742/projects/1), with a numeric **Story Points** field and a **Sprint** field.
 
-The board is configured with a dedicated numeric **Story Points** field and an iteration/sprint planning field **Sprint** grouping the work into two balanced iterations of 13 points each, totaling **26 story points**:
+| Issue | Backlog item | Story points | Sprint |
+| :--- | :--- | :---: | :--- |
+| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | Interactive Customer Profile Input Form with Presets | 5 | Sprint 1 |
+| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | Real-time XGBoost Prediction Engine and Probability Visualizer | 5 | Sprint 1 |
+| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | Robust Input Validation and Boundary Guards | 3 | Sprint 1 |
+| [#13](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/13) | Bright Theme Redesign and One-Click Persona Preset Cards | 5 | Sprint 1 |
+| [#14](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/14) | Real-Time Risk Gauge, Key Driver Breakdown and Boundary Feedback | 5 | Sprint 1 |
+| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | Model Performance Benchmarking and Evaluation | 5 | Sprint 2 |
+| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | Automated Tests for Validation and Prediction Pipeline | 5 | Sprint 2 |
+| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | GitHub Actions CI Workflow for Automated Verification | 3 | Sprint 2 |
+| [#15](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/15) | Interactive What-If Retention Strategy Simulator | 5 | Sprint 2 |
+| [#16](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/16) | Decision Threshold Tuning, Confusion Matrix and Batch CSV Scoring | 5 | Sprint 2 |
+| [#17](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/17) | Final Verification, Documentation Freeze and Release | 3 | Sprint 2 |
+| **Total** | | **49** | |
 
-| Issue | Backlog item | Story points | Sprint | GitHub assignee |
-| :--- | :--- | :---: | :--- | :--- |
-| [#1](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/1) | Interactive Customer Profile Input Form with Presets | 5 | Sprint 1 | ash29032006 |
-| [#2](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/2) | Real-time XGBoost Prediction Engine and Probability Visualizer | 5 | Sprint 1 | Akshayshetty742 |
-| [#3](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/3) | Robust Input Validation and Boundary Guards | 3 | Sprint 1 | ash29032006 |
-| [#4](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/4) | Model Performance Benchmarking and Evaluation | 5 | Sprint 2 | ash29032006 |
-| [#5](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/5) | Automated Tests for Validation and Prediction Pipeline | 5 | Sprint 2 | ash29032006, Akshayshetty742 |
-| [#6](https://github.com/Akshayshetty742/hackforge-customer-churn/issues/6) | GitHub Actions CI Workflow for Automated Verification | 3 | Sprint 2 | Akshayshetty742 |
-| **Total** | | **26** | | |
+- **Sprint 1:** 5 items, 23 story points, all completed.
+- **Sprint 2:** 6 items, 26 story points, all completed.
+- **Sprint 3:** 10 items, 44 story points (see section 8).
 
-Board configuration summary:
-- **Sprint 1:** Issues #1, #2, and #3 — **13 story points**.
-- **Sprint 2:** Issues #4, #5, and #6 — **13 story points**.
-- Total backlog velocity: **26 story points**.
-
-Evidence capture: See [docs/evidence/01_github_projects_board.png](docs/evidence/01_github_projects_board.png).
+Evidence: [docs/evidence/01_github_projects_board.png](docs/evidence/01_github_projects_board.png).
 
 ### 7.3 Sprint 1 Plan and Outcomes (1-Minute Video Deliverable)
 
-**Planned scope:** Sprint 1 focused on core user-facing functionality, model inference foundation, and bright executive UI:
+**Planned scope:** core user-facing functionality, the model inference foundation and the user interface:
 - Issue #1: Interactive customer profile input form with presets (5 points).
-- Issue #2: Real-time prediction engine and probability visualizer (5 points).
+- Issue #2: Real-time prediction engine and probability visualiser (5 points).
 - Issue #3: Input validation and boundary guards (3 points).
-- Issue #13: Sprint 1 UI: Bright Theme Redesign & One-Click Persona Preset Cards (5 points).
-- Issue #14: Sprint 1 UI: Real-Time Risk Gauge, Key Driver Breakdown & Boundary Feedback (5 points).
+- Issue #13: Bright theme redesign and one-click persona preset cards (5 points).
+- Issue #14: Real-time risk gauge, key driver breakdown and boundary feedback (5 points).
 
-**Outcomes and verification:**
-All Sprint 1 issues are completed and closed. Implementation delivers a bright, executive-grade light-themed interface (`.streamlit/config.toml`, `app.py`, `prediction_pipeline.py`) featuring interactive 1-click persona quick cards, real-time XGBoost probability gauge, and explainable churn driver attribution. The 1-minute video demonstration of the working MVP product was successfully recorded. Zero carryover items remained from Sprint 1.
+**Outcomes:** all Sprint 1 items were completed. The light-themed interface (`.streamlit/config.toml`, `app.py`, `prediction_pipeline.py`) provides one-click sample customers, a real-time XGBoost probability gauge and an explanation of the churn drivers. The 1-minute video of the working product is in `docs/evidence/videos/sprint1.mp4`.
 
-### 7.4 Sprint 2 Plan and Outcomes (2-Minute Video Deliverable & Freeze)
+### 7.4 Sprint 2 Plan and Outcomes (2-Minute Video Deliverable and Freeze)
 
-**Planned scope:** Sprint 2 focused on quality assurance, benchmarking, batch evaluation, and counterfactual simulation:
-- Issue #4: Model performance benchmarking and holdout evaluation (5 points).
-- Issue #5: Automated test suite for validation and prediction pipeline (5 points).
-- Issue #6: GitHub Actions CI workflow for automated verification (3 points).
-- Issue #15: Sprint 2: Interactive 'What-If' Retention Strategy Simulator & Counterfactual Analysis (5 points).
-- Issue #16: Sprint 2: Dynamic Decision Threshold Tuning, Confusion Matrix & Batch CSV Scoring (5 points).
-- Issue #17: Sprint 2: Final Verification, Documentation Freeze & Release (3 points).
+**Planned scope:** quality assurance, evaluation, batch scoring and simulation:
+- Issue #4: Model performance benchmarking and held-out evaluation (5 points).
+- Issue #5: Automated test suite for validation and prediction (5 points).
+- Issue #6: GitHub Actions CI workflow (3 points).
+- Issue #15: What-if retention strategy simulator (5 points).
+- Issue #16: Decision threshold tuning, confusion matrix and batch CSV scoring (5 points).
+- Issue #17: Final verification, documentation freeze and release (3 points).
 
-**Outcomes and verification:**
-All Sprint 2 issues are completed and closed. Implementation adds an interactive "What-If" retention strategy simulator computing counterfactual churn reduction and revenue preservation, vectorized batch customer CSV scoring with downloadable campaign lists, and dynamic holdout threshold tuning. The automated test suite contains 98 unit, integration, and UI tests passing with 100% success rate in under 30 seconds. The development cycle is officially frozen in accordance with SE Part 2 requirements.
+**Outcomes:** all Sprint 2 items were completed. The product gained the what-if retention simulator with counterfactual churn reduction and preserved revenue, batch CSV scoring with a downloadable outreach list, and decision threshold tuning. The automated test suite passed in full in CI. The video of the complete product is in `docs/evidence/videos/sprint2.mp4`.
 
-### 7.5 Pull-Request Workflow and Code Review
+### 7.5 Pull-Request Workflow
 
-The development process utilized feature branch isolation and pull requests merged into `main`. The repository records the following merged pull requests:
+Development used feature branches merged into `main` through pull requests:
 
 - [PR #7 — docs: demonstrate Deliverable 2 PR workflow](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/7)
 - [PR #8 — Feature/issues 1 3 4 form validation eval](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/8)
 - [PR #9 — feat(ml): add configurable churn threshold and risk tiers](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/9)
 - [PR #10 — docs: finalize software engineering part 2 report](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/10)
 - [PR #11 — test: fix duplicate pytest collection](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/11)
+- [PR #12 — docs: complete Software Engineering deliverable evidence](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/12)
+- [PR #18 — feat: Sprint 2 complete product](https://github.com/Akshayshetty742/hackforge-customer-churn/pull/18) (closes #15, #16, #17)
 
-Evidence capture: See [docs/evidence/02_merged_pull_requests.png](docs/evidence/02_merged_pull_requests.png).
+Pull requests #9 to #18 ran the CI workflow before merging, and all 20 workflow runs recorded on GitHub have passed. Evidence: [docs/evidence/02_merged_pull_requests.png](docs/evidence/02_merged_pull_requests.png).
 
 ### 7.6 GitHub Actions CI Workflow
 
-The CI workflow configuration in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on pushes and pull requests targeting `main`. The pipeline sets up Python with pip caching, installs project dependencies from `requirements.txt`, and runs `pytest -v`.
+The workflow in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and every push to `main`. All 20 recorded workflow runs have passed. In Sprint 3 the workflow was extended with two jobs:
 
-GitHub Actions records 13 successful workflow runs with 100% green status. Key runs include:
-- [Customer Churn CI Pipeline, run #7](https://github.com/Akshayshetty742/hackforge-customer-churn/actions/runs/38156397673) — verified success on `main` following PR #9 merge (duration: 52s).
-- Latest runs (#12, #13) verifying end-to-end Deliverable 2 pipeline stability.
+1. **Core Tests:** installs `requirements.txt` only and runs the test suite.
+2. **Quality:** installs all dependencies, runs pylint (minimum 8.5/10), runs the full suite with statement and branch coverage (minimum 85%), and uploads the test reports as an artifact.
 
-Evidence capture:
-- Workflow overview: [docs/evidence/03_github_actions_ci_runs.png](docs/evidence/03_github_actions_ci_runs.png)
-- Run #7 detail: [docs/evidence/04_github_actions_run_detail.png](docs/evidence/04_github_actions_run_detail.png)
+Evidence: [docs/evidence/03_github_actions_ci_runs.png](docs/evidence/03_github_actions_ci_runs.png), [docs/evidence/04_github_actions_run_detail.png](docs/evidence/04_github_actions_run_detail.png).
 
-### 7.7 Automated Testing and Verified Results
+### 7.7 Automated Testing
 
-Automated verification is implemented in [`test_pipeline.py`](test_pipeline.py) and [`test_app.py`](test_app.py) using `pytest`. The test suite covers:
-- Artifact loading, model deserialization, and label encoder integrity.
-- Boundary condition validation (tenure 0–120 months, monthly charges $0–$500, total charges $0–$50,000).
-- Cross-field logical consistency (e.g. phone service vs multiple lines, internet service vs add-ons).
-- Categorical input sanitization, type error guards, and blank value handling.
-- Customer presets completeness and deterministic classification.
-- Live holdout evaluation, confusion matrix consistency, and metric computation.
-- Streamlit application session state persistence and navigation.
+The suite has grown steadily: 94 tests in the Deliverable 2 evidence run, 98 at the end of Sprint 2, and 152 in Sprint 3. It covers:
+- Artefact loading, model deserialisation and encoder integrity.
+- Boundary validation (tenure 0 to 120 months, monthly charges 0 to 500, total charges 0 to 50,000) and cross-field consistency.
+- Sample customers and deterministic classification.
+- Held-out evaluation, confusion matrix consistency and metric computation.
+- The Streamlit application, run headless with Streamlit AppTest.
+- Batch scoring, risk explanation and the what-if simulator.
+- The deep learning and quantum models and the paradigm comparison.
+- The full training pipeline and benchmark, run end to end in a temporary folder (Test Plan TC-01 to TC-13).
 
-**Empirical test execution result:**
-```text
-============================= test session starts =============================
-platform win32 -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0
-rootdir: C:\Users\shett\Downloads\customer-churn-predictior-main
-configfile: pytest.ini
-collected 94 items
+Latest run (30 October 2026): **152 of 152 tests passed**. Details are in section 9.
 
-test_app.py ....................                                         [ 10%]
-test_pipeline.py ....................................................... [ 90%]
-test_pipeline.py .........                                               [100%]
+### 7.8 Screenshots and Evidence
 
-============================= 94 passed in 28.54s =============================
-```
+Evidence is archived in [`docs/evidence/`](docs/evidence/):
 
-Evidence capture: See [docs/evidence/05_automated_test_results.png](docs/evidence/05_automated_test_results.png).
+1. [`01_github_projects_board.png`](docs/evidence/01_github_projects_board.png): project board with the Story Points and Sprint fields.
+2. [`02_merged_pull_requests.png`](docs/evidence/02_merged_pull_requests.png): merged pull requests.
+3. [`03_github_actions_ci_runs.png`](docs/evidence/03_github_actions_ci_runs.png): passing CI runs.
+4. [`04_github_actions_run_detail.png`](docs/evidence/04_github_actions_run_detail.png): detail of a CI run.
+5. [`05_automated_test_results.png`](docs/evidence/05_automated_test_results.png): automated test results.
+6. [`06_app_prediction_interface.png`](docs/evidence/06_app_prediction_interface.png): prediction form, presets and model information.
+7. [`07_app_model_evaluation.png`](docs/evidence/07_app_model_evaluation.png): model evaluation page with metrics and confusion matrix.
+8. [`08_app_churn_prediction_result.png`](docs/evidence/08_app_churn_prediction_result.png): prediction result for a high-risk customer.
 
-### 7.8 Screenshots and Evidence Repository
+### 7.9 Deviations from the Submitted SRS, SAD and Test Plan
 
-Genuine screenshot evidence has been captured and archived within the repository in [`docs/evidence/`](docs/evidence/):
+The submitted documents described the first release: a command line training script. The team kept every one of those requirements and extended the product during the sprints. The main enhancements are:
 
-1. **GitHub Projects Board:** [`docs/evidence/01_github_projects_board.png`](docs/evidence/01_github_projects_board.png) — Confirms all 6 issues, Story Points (26 points total), and Sprint groupings (Sprint 1: 13 pts, Sprint 2: 13 pts).
-2. **Merged Pull Requests:** [`docs/evidence/02_merged_pull_requests.png`](docs/evidence/02_merged_pull_requests.png) — Records merged PRs #7, #8, #9, #10, and #11.
-3. **GitHub Actions CI Overview:** [`docs/evidence/03_github_actions_ci_runs.png`](docs/evidence/03_github_actions_ci_runs.png) — Records all 13 passing CI pipeline runs.
-4. **GitHub Actions Run Detail:** [`docs/evidence/04_github_actions_run_detail.png`](docs/evidence/04_github_actions_run_detail.png) — Detailed execution log and timing of CI run #7.
-5. **Automated Test Results:** [`docs/evidence/05_automated_test_results.png`](docs/evidence/05_automated_test_results.png) — Terminal execution output verifying 94 passed tests.
-6. **Streamlit Prediction Interface:** [`docs/evidence/06_app_prediction_interface.png`](docs/evidence/06_app_prediction_interface.png) — Demonstrates the interactive customer profile form, preset selectors, and loaded model metadata.
-7. **Model Evaluation Dashboard:** [`docs/evidence/07_app_model_evaluation.png`](docs/evidence/07_app_model_evaluation.png) — Shows live performance metrics (76% accuracy, 76% recall, 53% precision, 0.62 F1) and confusion matrix heatmap.
-8. **Live Prediction Profile:** [`docs/evidence/08_app_churn_prediction_result.png`](docs/evidence/08_app_churn_prediction_result.png) — Shows loaded high-risk customer profile parameters and inference readiness.
+1. A Streamlit web application, which SAD v1.0 listed as future work.
+2. Real-time single-customer prediction with risk tiers, also listed as future work.
+3. Field-level input validation, live evaluation with threshold tuning, batch scoring, and the what-if simulator.
+4. In Sprint 3, deep learning and quantum machine learning models compared with XGBoost and shown side by side in the application.
+5. DVC and MLflow for reproducible, tracked experiments.
+6. Full test automation with coverage and a code quality gate in CI.
 
-### 7.9 Deviations from the Submitted SRS, SAD, and Test Plan
+Each change is listed with its reason and benefit in [docs/DEVIATIONS_AND_ENHANCEMENTS.md](docs/DEVIATIONS_AND_ENHANCEMENTS.md). The new requirements are specified in [SRS v1.1](docs/SRS_v1.1_Addendum.md), designed in [SAD v1.1](docs/SAD_v1.1_Addendum.md) and verified by [Test Plan v1.1](docs/TEST_PLAN_v1.1.md). The production XGBoost model and its class weighting were kept exactly as specified.
 
-The submitted SRS, Software Architecture Document (SAD), and Test Plan specifications were traced directly through the backlog issue references (SRS-FR-01, SRS-FR-02, SRS-FR-03, SRS-NFR-01, SRS-NFR-02, SRS-NFR-03). The final implementation complies with these requirements without functional deviations. Model hyperparameter tuning and class weighting were retained exactly as specified, producing 76% accuracy and 76% recall on the holdout evaluation set.
+### 7.10 Part 2 Status Summary
 
-### 7.10 Final Project Status and Verification Summary
+| Part 2 requirement | Status |
+|---|---|
+| Project created and linked to the repository | Done: GitHub Projects board |
+| Backlog created from the SRS FRs and NFRs | Done: 11 issues for Sprints 1 and 2, traced in `docs/TRACEABILITY_MATRIX.md` |
+| Story points assigned | Done: 49 points across Sprints 1 and 2 |
+| Stories assigned to team members | Done |
+| Two sprints planned and completed | Done |
+| GitHub Actions enabled | Done |
+| Pull-request workflow | Done |
+| Sprint 1 and Sprint 2 videos uploaded | Done: `docs/evidence/videos/` |
+| Deviations documented | Done: `docs/DEVIATIONS_AND_ENHANCEMENTS.md` |
+| Documentation complete | Done |
 
-All four Software Engineering deliverable gaps have been identified and resolved:
-1. **Story Points:** Verified on GitHub Projects board (`Hackforge — Customer Churn Prediction (Deliverable Part 2)`); all 6 issues are assigned intended estimates totaling 26 story points.
-2. **Sprint Planning:** Configured and verified into Sprint 1 (issues #1–#3, 13 points) and Sprint 2 (issues #4–#6, 13 points).
-3. **Acceptance Criteria:** Acceptance checklists on issues #1, #3, and #4 were verified against code and tests, then marked checked on GitHub.
-4. **Screenshot Evidence:** Archived in `docs/evidence/` with 8 genuine high-resolution evidence files referenced throughout this report.
+---
 
-All 94 automated tests pass cleanly with zero failures.
+## 8. Sprint 3: ML vs DML vs QML and MLOps
 
+### 8.1 Goal
+
+Compare three machine learning paradigms on the churn problem under identical conditions, show their predictions side by side in the application, and make every experiment reproducible and tracked.
+
+### 8.2 Backlog
+
+| ID | Backlog item | Story points |
+|---|---|---|
+| S3-1 | DVC pipeline and MLflow experiment tracking | 5 |
+| S3-2 | Code quality refactor and pylint configuration | 3 |
+| S3-3 | Deep learning (DML) churn model | 5 |
+| S3-4 | Quantum machine learning (QML) churn model | 8 |
+| S3-5 | ML vs DML vs QML benchmark and side-by-side predictions | 5 |
+| S3-6 | Updated test cases and automation of TC-01 to TC-26 | 5 |
+| S3-7 | Unit, system validation, code coverage and branch coverage reports | 3 |
+| S3-8 | CI upgrade: lint, coverage gate and report artifacts | 3 |
+| S3-9 | SRS, SAD and Test Plan v1.1, traceability and deviations | 5 |
+| S3-10 | README, project report and repository tidy-up | 2 |
+| **Total** | | **44** |
+
+### 8.3 The three paradigms
+
+| Paradigm | Model | Design |
+|---|---|---|
+| ML | XGBoost (and Logistic Regression as a baseline) | Gradient boosted trees with class weighting and stratified grid search |
+| DML | Multi-layer perceptron (PyTorch) | One-hot and standardised inputs, two hidden layers (64 and 32) with batch normalisation and dropout, class-weighted loss, early stopping |
+| QML | Variational quantum classifier (PennyLane) | Inputs reduced to 6 features with PCA and encoded as qubit rotation angles, 3 entangling layers with data re-uploading, Pauli-Z measurements and a linear output; 61 trainable parameters |
+
+All three are trained on the same stratified split and corrected for class imbalance in the same way, and the deep and quantum models follow the scikit-learn interface, so the same evaluation and logging code measures all of them.
+
+### 8.4 Results
+
+| Paradigm | Model | Accuracy | Recall (churn) | F1 (churn) | ROC-AUC | Trainable parameters | Training time |
+|---|---|---|---|---|---|---|---|
+| ML | XGBoost | 75.66% | 79.41% | 0.634 | 0.846 | 5,628 tree nodes | 6.0 s |
+| DML | Deep MLP | 73.24% | 79.68% | 0.613 | 0.841 | 5,249 | 2.4 s |
+| ML | Logistic Regression | 73.67% | 79.41% | 0.616 | 0.839 | 20 | 0.2 s |
+| QML | Quantum VQC | 73.74% | 75.40% | 0.604 | 0.829 | 61 | 44.4 s |
+
+Findings:
+1. On tabular churn data the three paradigms reach very similar quality (ROC-AUC between 0.83 and 0.85), which confirms XGBoost as a sound production choice.
+2. The deep network has the highest churn recall (79.7%).
+3. The quantum classifier comes within 0.02 ROC-AUC of XGBoost with only 61 trainable parameters, about one hundredth of the deep network, which shows how compact a quantum model can be.
+4. Showing all three in the application makes uncertainty visible: for the borderline sample customer the models disagree (49.7%, 65.3% and 43.7%), which tells the analyst that this customer needs a closer look.
+
+### 8.5 MLOps
+
+- **DVC:** `dvc.yaml` defines two stages, `train` and `benchmark_paradigms`. All settings are in `params.yaml`, and `dvc.lock` records the exact inputs of each result.
+- **MLflow:** each model run logs its parameters, metrics, plots, trainable parameter count, training time and the model itself, in the experiments Customer-Churn-Prediction and Customer-Churn-Paradigms (UI on port 5001).
+- **Code quality:** the training code was split into shared modules (`training_common.py`, `classical_models.py`), and the repository scores 9.8/10 in pylint.
+
+---
+
+## 9. Testing and Quality (Deliverable Part 3)
+
+### 9.1 Test case update
+
+Test Plan v1.1 ([docs/TEST_PLAN_v1.1.md](docs/TEST_PLAN_v1.1.md)) keeps the 13 original test cases, automates all of them, and adds 13 new test cases for the features built in the sprints, for a total of 26. Every automated test is linked to its test case in `traceability.py`.
+
+### 9.2 Results
+
+| Measure | Target | Result |
+|---|---|---|
+| Automated tests passed | All | 152 of 152 |
+| Test cases passed | All | 26 of 26 |
+| Requirements validated | All | All requirements of SRS v1.0 and v1.1 |
+| Statement coverage (application modules) | 85% | 89.1% |
+| Branch coverage (application modules) | 75% | 79.4% |
+| pylint score | 8.5/10 | 9.8/10 |
+| Full training run time (NFR-01) | under 300 s | 15.3 s |
+| Single prediction latency (NFR-11) | under 200 ms | 11.3 ms |
+
+### 9.3 Test reports
+
+The four reports required for Part 3 are generated from one run of the suite by `python tools/generate_test_reports.py` and stored in [docs/test-reports/](docs/test-reports/):
+
+1. [Unit Test Report](docs/test-reports/UNIT_TEST_REPORT.md)
+2. [System Validation Report](docs/test-reports/SYSTEM_VALIDATION_REPORT.md)
+3. [Code Coverage Report](docs/test-reports/CODE_COVERAGE_REPORT.md)
+4. [Branch Coverage Report](docs/test-reports/BRANCH_COVERAGE_REPORT.md)
