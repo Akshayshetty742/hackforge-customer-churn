@@ -1,0 +1,4 @@
+# Deep learning (DML) and quantum ML (QML) models for 02_paradigm_benchmark.py.
+-r requirements-mlops.txt
+torch>=2.2.0
+pennylane>=0.38.0
