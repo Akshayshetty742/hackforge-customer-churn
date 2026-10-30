@@ -1,6 +1,6 @@
 # Project Report: Customer Churn Prediction System
 
-**Author:** Akshay B  , Ashwin C H , Amarpatil
+**Author:** Akshay B  , Ashwin C H , Amarpatil   
 **Technologies:** Python, XGBoost, Scikit-Learn, Pandas
 
 ---
