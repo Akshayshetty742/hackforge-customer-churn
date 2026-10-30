@@ -1,0 +1,116 @@
+{
+  "project": "Customer Churn Prediction Model",
+  "team": "Hackforge",
+  "members": [
+    {"name": "Akshaya B", "srn": "PES1UG24AM026"},
+    {"name": "Ashwin C H", "srn": "PES1UG24AM900"},
+    {"name": "Amar Patil", "srn": "PES1UG24AM031"}
+  ],
+  "course": "Software Engineering Mini Project, PES University",
+  "timezone": "IST (UTC+05:30)",
+  "method": "Story points are taken from the GitHub issues. A story is counted as planned when its issue was created and as done when its issue was closed on GitHub (Sprints 1 and 2) or when its work was committed (Sprint 3, whose issues close when the pull requests are merged). All times are IST.",
+  "sprints": [
+    {
+      "name": "Sprint 1",
+      "window": "19 to 23 October 2026",
+      "goal": "Deliver the functional core: a customer input form with sample customers, real-time XGBoost prediction with a probability visualiser, input validation, and a clear, light user interface with a risk gauge and churn drivers.",
+      "video": "docs/evidence/videos/sprint1.mp4",
+      "items": [
+        {"id": "#1", "title": "Interactive Customer Profile Input Form with Presets", "points": 5, "assignee": "ash29032006", "planned": "2026-10-11T15:06", "done": "2026-10-11T20:11"},
+        {"id": "#2", "title": "Real-time XGBoost Prediction Engine and Probability Visualizer", "points": 5, "assignee": "Akshayshetty742", "planned": "2026-10-11T15:09", "done": "2026-10-11T19:44"},
+        {"id": "#3", "title": "Robust Input Validation and Boundary Guards", "points": 3, "assignee": "ash29032006", "planned": "2026-10-11T15:09", "done": "2026-10-11T20:11"},
+        {"id": "#13", "title": "Bright Theme Redesign and One-Click Persona Preset Cards", "points": 5, "assignee": "Akshayshetty742, amarpatil2004", "planned": "2026-10-28T11:50", "done": "2026-10-28T12:03"},
+        {"id": "#14", "title": "Real-Time Risk Gauge, Key Driver Breakdown and Boundary Feedback", "points": 5, "assignee": "Akshayshetty742, amarpatil2004", "planned": "2026-10-28T11:50", "done": "2026-10-28T12:03"}
+      ],
+      "outcome": "All five stories were completed (23 of 23 points). The product could take a customer profile, validate it, and show a churn probability, risk tier and risk drivers in real time. Pull requests #8 and #9 delivered the core stories, the interface stories were delivered in PR #18, and the 1-minute demonstration video was recorded.",
+      "retrospective": {
+        "went_well": [
+          "A working end-to-end product existed from the first stories, so every later story added value to something users could already try.",
+          "The validation rules caught impossible customer profiles (for example internet add-ons without internet service) before they reached the model.",
+          "The four sample customers made demonstrations and manual checks fast and repeatable.",
+          "Feature branches and pull requests kept main stable, and the GitHub Projects board recorded the story points and sprint of the backlog items."
+        ],
+        "improve": [
+          "Close each issue on the board as soon as its work is merged, so the burndown reflects progress day by day.",
+          "Add a teammate review to every pull request before merging.",
+          "Keep stories at 5 points or fewer so progress is visible in smaller steps."
+        ],
+        "actions": [
+          "Link pull requests to the issues they close (adopted in Sprint 2, PR #18).",
+          "Grow the automated test suite with each new feature (adopted in Sprint 2).",
+          "Run the CI workflow on every pull request (adopted from PR #9 onwards)."
+        ]
+      }
+    },
+    {
+      "name": "Sprint 2",
+      "window": "26 to 30 October 2026",
+      "goal": "Complete the product: model evaluation and benchmarking, an automated test suite with continuous integration, a what-if retention simulator, decision threshold tuning, and batch CSV scoring, then freeze the documentation.",
+      "video": "docs/evidence/videos/sprint2.mp4",
+      "items": [
+        {"id": "#4", "title": "Model Performance Benchmarking and Evaluation", "points": 5, "assignee": "ash29032006", "planned": "2026-10-11T15:11", "done": "2026-10-11T20:11"},
+        {"id": "#5", "title": "Automated Tests for Validation and Prediction Pipeline", "points": 5, "assignee": "ash29032006, Akshayshetty742", "planned": "2026-10-11T15:11", "done": "2026-10-11T22:14"},
+        {"id": "#6", "title": "GitHub Actions CI Workflow for Automated Verification", "points": 3, "assignee": "Akshayshetty742", "planned": "2026-10-11T15:12", "done": "2026-10-11T19:40"},
+        {"id": "#15", "title": "Interactive What-If Retention Strategy Simulator", "points": 5, "assignee": "Akshayshetty742, amarpatil2004", "planned": "2026-10-28T13:14", "done": "2026-10-28T13:26"},
+        {"id": "#16", "title": "Decision Threshold Tuning, Confusion Matrix and Batch CSV Scoring", "points": 5, "assignee": "Akshayshetty742, amarpatil2004", "planned": "2026-10-28T13:14", "done": "2026-10-28T13:26"},
+        {"id": "#17", "title": "Final Verification, Documentation Freeze and Release", "points": 3, "assignee": "Akshayshetty742, amarpatil2004", "planned": "2026-10-28T13:14", "done": "2026-10-28T13:26"}
+      ],
+      "outcome": "All six stories were completed (26 of 26 points). The product gained live evaluation with threshold tuning, batch scoring with a downloadable outreach list, and the what-if simulator. The suite reached 98 automated tests, every CI run passed, and the 2-minute demonstration video was recorded. PR #18 closed issues #15, #16 and #17.",
+      "retrospective": {
+        "went_well": [
+          "The what-if simulator and batch scoring turned the model into a practical retention tool.",
+          "All 98 automated tests passed and every CI run on GitHub was green.",
+          "Pull request #18 was linked to the three issues it delivered, so the board closed them automatically.",
+          "The demonstration video showed the complete product working end to end."
+        ],
+        "improve": [
+          "Measure test coverage, not only the number of tests.",
+          "The application file grew large; move shared logic into modules.",
+          "Record the date each story is finished as it happens."
+        ],
+        "actions": [
+          "Add statement and branch coverage reports with a minimum threshold in CI (done in Sprint 3).",
+          "Move training logic into shared modules and add a pylint quality gate (done in Sprint 3).",
+          "Link every automated test to a Test Plan test case (done in Sprint 3)."
+        ]
+      }
+    },
+    {
+      "name": "Sprint 3",
+      "window": "2 to 6 November 2026 (optional sprint, Deliverable Part 3)",
+      "goal": "Compare classical, deep and quantum machine learning on the churn problem and show all three predictions in the application; make experiments reproducible with DVC and MLflow; update and automate every test case and produce the Part 3 test reports.",
+      "video": "",
+      "items": [
+        {"id": "S3-1", "title": "DVC pipeline and MLflow experiment tracking", "points": 5, "assignee": "ash29032006", "planned": "2026-10-28", "done": "2026-10-28T20:31"},
+        {"id": "S3-2", "title": "Code quality refactor and pylint configuration", "points": 3, "assignee": "ash29032006", "planned": "2026-10-28", "done": "2026-10-30T14:11"},
+        {"id": "S3-3", "title": "Deep learning (DML) churn model", "points": 5, "assignee": "ash29032006", "planned": "2026-10-28", "done": "2026-10-30T14:11"},
+        {"id": "S3-4", "title": "Quantum machine learning (QML) churn model", "points": 8, "assignee": "ash29032006", "planned": "2026-10-28", "done": "2026-10-30T14:11"},
+        {"id": "S3-5", "title": "ML vs DML vs QML benchmark and side-by-side predictions", "points": 5, "assignee": "ash29032006", "planned": "2026-10-28", "done": "2026-10-30T14:11"},
+        {"id": "S3-6", "title": "Updated test cases and automation of TC-01 to TC-26", "points": 5, "assignee": "ash29032006", "planned": "2026-10-30T13:29", "done": "2026-10-30T14:11"},
+        {"id": "S3-7", "title": "Unit, system validation, code coverage and branch coverage reports", "points": 3, "assignee": "ash29032006", "planned": "2026-10-30T13:29", "done": "2026-10-30T14:11"},
+        {"id": "S3-8", "title": "CI upgrade: lint, coverage gate and report artifacts", "points": 3, "assignee": "ash29032006", "planned": "2026-10-30T13:29", "done": "2026-10-30T14:11"},
+        {"id": "S3-9", "title": "SRS, SAD and Test Plan v1.1, traceability and deviations", "points": 5, "assignee": "ash29032006", "planned": "2026-10-30T13:29", "done": "2026-10-30T14:11"},
+        {"id": "S3-10", "title": "README, project report and repository tidy-up", "points": 2, "assignee": "ash29032006", "planned": "2026-10-30T13:29", "done": "2026-10-30T14:11"}
+      ],
+      "outcome": "All ten stories were completed in code (44 of 44 points) ahead of the sprint window. The three paradigms reach ROC-AUC between 0.829 and 0.846 on the same test set, and the application shows all three predictions for every customer. The test suite grew to 152 tests covering all 26 test cases, with 89.1% statement coverage, 79.4% branch coverage and a pylint score of 9.82/10.",
+      "retrospective": {
+        "went_well": [
+          "Training every paradigm on the identical split made the comparison fair and easy to explain.",
+          "Writing the deep and quantum models with the scikit-learn interface let one evaluation and logging path serve all three paradigms.",
+          "Running the full training pipeline inside the tests, in a temporary folder, verified it end to end without risking the production model.",
+          "The test reports are generated by one command from a real run, so they always match the code."
+        ],
+        "improve": [
+          "Open review requests early so the repository owner has time to review each pull request.",
+          "Split the application into page modules as it keeps growing.",
+          "Add a shared DVC remote so every teammate can pull the same data and models."
+        ],
+        "actions": [
+          "Review and merge the three Sprint 3 pull requests in order (models, testing, documentation).",
+          "Use the test reports as the regression baseline during the 2 to 6 November testing week.",
+          "Carry the application refactor into future work."
+        ]
+      }
+    }
+  ]
+}
