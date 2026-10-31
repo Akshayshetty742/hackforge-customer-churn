@@ -209,4 +209,4 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001   # view the exper
 | Security objectives (SO) | 3 | 0 | 3 |
 | Security requirements (SR) | 5 | 2 | 7 |
 
-Every requirement is linked to a test case in Test Plan v1.1, and every test case has passed (see `docs/test-reports/SYSTEM_VALIDATION_REPORT.md`).
+Every requirement is linked to a test case in Test Plan v1.1, and every test case has passed (see `docs/reports/test-reports/SYSTEM_VALIDATION_REPORT.md`).

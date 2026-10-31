@@ -48,7 +48,7 @@ All of the changes are now specified in SRS v1.1, designed in SAD v1.1, and veri
 1. TC-01 to TC-13 keep their purpose. Steps that relied on reading terminal output now check the saved files and MLflow records, which is stricter.
 2. TC-05 expected "36 combinations are tried". It now checks that every combination of the configured grid is evaluated, which stays correct if the grid changes.
 3. TC-14 to TC-26 were added for the new features and the new non-functional requirements.
-4. All test cases now have the status Pass, recorded in `docs/test-reports/SYSTEM_VALIDATION_REPORT.md`.
+4. All test cases now have the status Pass, recorded in `docs/reports/test-reports/SYSTEM_VALIDATION_REPORT.md`.
 
 ## 5. Design Decisions Kept from Deliverable 1
 

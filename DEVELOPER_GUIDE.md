@@ -75,7 +75,7 @@ Install from the `requirements*.txt` files described in the README. Each file in
 ### Tests and traceability
 -   Test Plan test cases, the requirements they verify and the tests that run them are listed in `traceability.py`. `conftest.py` tags each test with its test case ID.
 -   `test_system_validation.py` runs the training pipeline and the benchmark end to end with every output redirected to a temporary folder.
--   `python tools/generate_test_reports.py` runs the suite with coverage and pylint and writes the reports in `docs/test-reports/`.
+-   `python tools/generate_test_reports.py` runs the suite with coverage and pylint and writes the reports in `docs/reports/test-reports/`.
 -   When you add a feature, add or extend a test case in `traceability.py` and tag the new tests with `@pytest.mark.tc("TC-xx")`.
 
 ## 4. Deployment & Usage

@@ -28,7 +28,7 @@ This report records the result of every automated test in the project. The tests
 | pytest-cov | 7.1.0 |
 | pylint | 4.1.3 |
 
-Command: `pytest --cov --cov-branch --junitxml=docs/test-reports/raw/junit.xml`
+Command: `pytest --cov --cov-branch --junitxml=docs/reports/test-reports/raw/junit.xml`
 
 ## 3. Summary
 

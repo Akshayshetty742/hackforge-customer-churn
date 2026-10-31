@@ -1,9 +1,9 @@
-# Traceability Matrix
+# Product Backlog and Traceability Matrix
 
 Project: Customer Churn Prediction Model
 Team: Hackforge (Akshaya B, Ashwin C H, Amar Patil)
 
-This document links each backlog item to the SRS requirements it delivers and the test cases that verify it. The requirement and test case IDs are those of SRS v1.1 and Test Plan v1.1. The links from test cases to individual automated tests are kept in `traceability.py` and printed in `docs/test-reports/SYSTEM_VALIDATION_REPORT.md`.
+This document links each backlog item to the SRS requirements it delivers and the test cases that verify it. The requirement and test case IDs are those of SRS v1.1 and Test Plan v1.1. The links from test cases to individual automated tests are kept in `traceability.py` and printed in `docs/reports/test-reports/SYSTEM_VALIDATION_REPORT.md`.
 
 ## 1. Backlog to Requirements to Test Cases
 

@@ -97,7 +97,7 @@ This section records the software engineering process evidence: the GitHub Proje
 
 ### 7.1 GitHub Backlog and SRS Traceability
 
-The backlog was created as GitHub issues from the requirements in the SRS, each with acceptance criteria, an SRS reference, story points, a sprint and an assignee. All Sprint 1 and Sprint 2 issues are closed with every acceptance criterion checked. The mapping of each issue to the detailed requirement IDs of SRS v1.1 and to its test cases is in [docs/TRACEABILITY_MATRIX.md](docs/TRACEABILITY_MATRIX.md).
+The backlog was created as GitHub issues from the requirements in the SRS, each with acceptance criteria, an SRS reference, story points, a sprint and an assignee. All Sprint 1 and Sprint 2 issues are closed with every acceptance criterion checked. The mapping of each issue to the detailed requirement IDs of SRS v1.1 and to its test cases is in [docs/reports/Product_Backlog.md](docs/reports/Product_Backlog.md).
 
 ### 7.2 Story Points and Sprint Configuration
 
@@ -215,7 +215,7 @@ Each change is listed with its reason and benefit in [docs/DEVIATIONS_AND_ENHANC
 | Part 2 requirement | Status |
 |---|---|
 | Project created and linked to the repository | Done: GitHub Projects board |
-| Backlog created from the SRS FRs and NFRs | Done: 11 issues for Sprints 1 and 2, traced in `docs/TRACEABILITY_MATRIX.md` |
+| Backlog created from the SRS FRs and NFRs | Done: 11 issues for Sprints 1 and 2, traced in `docs/reports/Product_Backlog.md` |
 | Story points assigned | Done: 49 points across Sprints 1 and 2 |
 | Stories assigned to team members | Done |
 | Two sprints planned and completed | Done |
@@ -303,9 +303,9 @@ Test Plan v1.1 ([docs/TEST_PLAN_v1.1.md](docs/TEST_PLAN_v1.1.md)) keeps the 13 o
 
 ### 9.3 Test reports
 
-The four reports required for Part 3 are generated from one run of the suite by `python tools/generate_test_reports.py` and stored in [docs/test-reports/](docs/test-reports/):
+The four reports required for Part 3 are generated from one run of the suite by `python tools/generate_test_reports.py` and stored in [docs/reports/test-reports/](docs/reports/test-reports/):
 
-1. [Unit Test Report](docs/test-reports/UNIT_TEST_REPORT.md)
-2. [System Validation Report](docs/test-reports/SYSTEM_VALIDATION_REPORT.md)
-3. [Code Coverage Report](docs/test-reports/CODE_COVERAGE_REPORT.md)
-4. [Branch Coverage Report](docs/test-reports/BRANCH_COVERAGE_REPORT.md)
+1. [Unit Test Report](docs/reports/test-reports/UNIT_TEST_REPORT.md)
+2. [System Validation Report](docs/reports/test-reports/SYSTEM_VALIDATION_REPORT.md)
+3. [Code Coverage Report](docs/reports/test-reports/CODE_COVERAGE_REPORT.md)
+4. [Branch Coverage Report](docs/reports/test-reports/BRANCH_COVERAGE_REPORT.md)

@@ -14,7 +14,7 @@ Base document: Test Plan v1.0, Part C of `docs/deliverables/Hackforge_Customer_C
 | Identifier | STP-CCP-1.1 |
 | Project | Customer Churn Prediction Model |
 | Version | 1.1 (updated after Sprints 1 to 3) |
-| Related documents | SRS v1.1 Addendum, SAD v1.1 Addendum, test reports in `docs/test-reports/` |
+| Related documents | SRS v1.1 Addendum, SAD v1.1 Addendum, test reports in `docs/reports/test-reports/` |
 | Test environment | macOS laptop (Python 3.12) and GitHub Actions Ubuntu runner (Python 3.12) |
 
 ### 1.2 Changes from version 1.0
@@ -130,11 +130,11 @@ Testing is suspended if the dataset or production model is missing or if a priva
 
 | Deliverable | Location |
 |---|---|
-| Unit Test Report | `docs/test-reports/UNIT_TEST_REPORT.md` |
-| System Validation Report (includes the test execution record) | `docs/test-reports/SYSTEM_VALIDATION_REPORT.md` |
-| Code Coverage Report | `docs/test-reports/CODE_COVERAGE_REPORT.md` |
-| Branch Coverage Report | `docs/test-reports/BRANCH_COVERAGE_REPORT.md` |
-| Raw evidence (JUnit XML, Cobertura XML, coverage JSON, pytest and pylint output) | `docs/test-reports/raw/` |
+| Unit Test Report | `docs/reports/test-reports/UNIT_TEST_REPORT.md` |
+| System Validation Report (includes the test execution record) | `docs/reports/test-reports/SYSTEM_VALIDATION_REPORT.md` |
+| Code Coverage Report | `docs/reports/test-reports/CODE_COVERAGE_REPORT.md` |
+| Branch Coverage Report | `docs/reports/test-reports/BRANCH_COVERAGE_REPORT.md` |
+| Raw evidence (JUnit XML, Cobertura XML, coverage JSON, pytest and pylint output) | `docs/reports/test-reports/raw/` |
 
 All reports are regenerated with `python tools/generate_test_reports.py`.
 
@@ -195,7 +195,7 @@ All reports are regenerated with `python tools/generate_test_reports.py`.
 
 ### 11.2 Test execution record
 
-The full execution record, with the number of automated tests per test case, measured values and pass/fail status, is in `docs/test-reports/SYSTEM_VALIDATION_REPORT.md`. Summary of the run on 30 October 2026:
+The full execution record, with the number of automated tests per test case, measured values and pass/fail status, is in `docs/reports/test-reports/SYSTEM_VALIDATION_REPORT.md`. Summary of the run on 30 October 2026:
 
 | Test cases | Passed | Failed | Automated tests | Passed | Failed |
 |---|---|---|---|---|---|

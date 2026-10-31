@@ -32,6 +32,7 @@ customer-churn-predictior-main/
 # Word documents / rubrics (submitted deliverables are kept)
 *.docx
 !docs/deliverables/*.docx
+!docs/reports/*.docx
 
 # DVC tracked files
 /WA_Fn-UseC_-Telco-Customer-Churn.csv

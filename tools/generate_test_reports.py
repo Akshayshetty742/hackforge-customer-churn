@@ -1,4 +1,4 @@
-"""Runs the full test suite and writes the Deliverable Part 3 test reports to docs/test-reports/.
+"""Runs the full test suite and writes the Deliverable Part 3 test reports to docs/reports/test-reports/.
 
     python tools/generate_test_reports.py
 
@@ -33,7 +33,7 @@ sys.path.insert(0, BASE_DIR)
 import prediction_pipeline as pp  # noqa: E402
 from traceability import TEST_CASES, requirement_index  # noqa: E402
 
-OUT_DIR = os.path.join(BASE_DIR, "docs", "test-reports")
+OUT_DIR = os.path.join(BASE_DIR, "docs", "reports", "test-reports")
 RAW_DIR = os.path.join(OUT_DIR, "raw")
 PYLINT_THRESHOLD = 8.5  # NFR-13, same as pyproject.toml fail-under
 STATIC_ANALYSIS_CASE = "TC-26"  # verified by pylint here and in CI, not by a pytest test
@@ -189,7 +189,7 @@ def unit_test_report(junit: Dict[str, Any], run_date: str) -> str:
              "the training pipeline, and the deep learning and quantum models. Each test is linked to the "
              "Test Plan v1.1 test case it executes.\n\n")
     text += "## 2. Test Environment\n\n" + _table(["Item", "Value"], [list(row) for row in environment()])
-    text += ("\nCommand: `pytest --cov --cov-branch --junitxml=docs/test-reports/raw/junit.xml`\n\n"
+    text += ("\nCommand: `pytest --cov --cov-branch --junitxml=docs/reports/test-reports/raw/junit.xml`\n\n"
              "## 3. Summary\n\n")
     text += _table(["Total tests", "Passed", "Failed", "Skipped", "Pass rate", "Duration"], [[
         len(tests), outcomes["Passed"], outcomes["Failed"], outcomes["Skipped"],
@@ -397,7 +397,7 @@ def branch_coverage_report(coverage: Dict[str, Any], run_date: str) -> str:
 
 
 def index_page(run_date: str, failed: int) -> str:
-    """docs/test-reports/README.md."""
+    """docs/reports/test-reports/README.md."""
     return ("# Test Reports\n\n"
             f"Test reports for Deliverable Part 3, generated on {run_date} from one run of the automated test suite"
             f"{' with no failures' if not failed else ''}.\n\n"

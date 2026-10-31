@@ -242,7 +242,7 @@ git checkout -- customer_churn_model_xgboost.pkl encoders.pkl
 
 ```bash
 pytest                                  # full suite: 152 tests, about 90 seconds
-python tools/generate_test_reports.py   # tests + coverage + pylint, writes docs/test-reports/
+python tools/generate_test_reports.py   # tests + coverage + pylint, writes docs/reports/test-reports/
 ```
 
 | Test file | What it covers |
@@ -255,7 +255,7 @@ python tools/generate_test_reports.py   # tests + coverage + pylint, writes docs
 
 Every test is linked to a Test Plan v1.1 test case (`traceability.py`). The training pipeline and the benchmark are run inside the tests with all outputs redirected to a temporary folder, so the production model is never changed. Tests that need optional packages (MLflow, PyTorch, PennyLane) skip cleanly when those packages are not installed.
 
-Latest results (30 October 2026): 152 of 152 tests passed, 26 of 26 test cases passed, 89.1% statement coverage, 79.4% branch coverage. See [docs/test-reports/](docs/test-reports/).
+Latest results (30 October 2026): 152 of 152 tests passed, 26 of 26 test cases passed, 89.1% statement coverage, 79.4% branch coverage. See [docs/reports/test-reports/](docs/reports/test-reports/).
 
 ---
 
@@ -291,9 +291,8 @@ hackforge-customer-churn/
     ├── SRS_v1.1_Addendum.md          # Requirements v1.1
     ├── SAD_v1.1_Addendum.md          # Architecture and design v1.1
     ├── TEST_PLAN_v1.1.md             # Test plan and test cases v1.1
-    ├── TRACEABILITY_MATRIX.md        # Backlog, requirements and test cases
     ├── DEVIATIONS_AND_ENHANCEMENTS.md
-    ├── test-reports/                 # Unit, system validation, code and branch coverage reports
+    ├── reports/                      # All submission reports (SRS/STP/SAD, backlog, sprint, test reports)
     ├── deliverables/                 # Deliverable 1 document and presentation
     └── evidence/                     # Screenshots and sprint videos
 ```
@@ -308,9 +307,10 @@ hackforge-customer-churn/
 | [SRS v1.1](docs/SRS_v1.1_Addendum.md) | Requirements added during the sprints |
 | [SAD v1.1](docs/SAD_v1.1_Addendum.md) | Architecture, component and sequence diagrams, API design |
 | [Test Plan v1.1](docs/TEST_PLAN_v1.1.md) | 26 test cases with status and traceability |
-| [Traceability Matrix](docs/TRACEABILITY_MATRIX.md) | Backlog items to requirements to test cases |
+| [Reports](docs/reports/README.md) | All submission reports in one folder |
+| [Product Backlog](docs/reports/Product_Backlog.md) | Backlog items with story points, mapped to requirements and test cases |
 | [Deviations and Enhancements](docs/DEVIATIONS_AND_ENHANCEMENTS.md) | Changes from the submitted documents |
-| [Test Reports](docs/test-reports/README.md) | Unit test, system validation, code coverage and branch coverage reports |
+| [Test Reports](docs/reports/test-reports/README.md) | Unit test, system validation, code coverage and branch coverage reports |
 | [Developer Guide](DEVELOPER_GUIDE.md) | Design decisions and code walkthrough |
 | [Project Report](PROJECT_REPORT.md) | Full project report |
 

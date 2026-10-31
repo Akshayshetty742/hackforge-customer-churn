@@ -3,7 +3,7 @@
     python tools/generate_sprint_report.py
 
 Reads docs/sprint-report/sprint_data.json (the single source for every number), draws the charts into
-docs/sprint-report/ and writes docs/deliverables/Hackforge_Sprint_Report.docx.
+docs/sprint-report/ and writes docs/reports/Sprint_Report.docx.
 Requires matplotlib and python-docx (requirements-dev.txt).
 """
 
@@ -33,7 +33,7 @@ from docx.shared import Cm, Pt, RGBColor  # noqa: E402
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_FILE = os.path.join(BASE_DIR, "docs", "sprint-report", "sprint_data.json")
 CHART_DIR = os.path.join(BASE_DIR, "docs", "sprint-report")
-OUTPUT_FILE = os.path.join(BASE_DIR, "docs", "deliverables", "Hackforge_Sprint_Report.docx")
+OUTPUT_FILE = os.path.join(BASE_DIR, "docs", "reports", "Sprint_Report.docx")
 
 BLACK = "#000000"
 GREY = "#6b6b6b"
