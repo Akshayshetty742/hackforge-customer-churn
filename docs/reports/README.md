@@ -13,4 +13,4 @@ Customer Churn Prediction Model, Team Hackforge, Software Engineering Mini Proje
 | 7 | Branch Coverage Report | [7. Branch Coverage Report.pdf](7.%20Branch%20Coverage%20Report.pdf) |
 | 8 | Project Summary (problem statement to sprints) | [8. Project Summary.pdf](8.%20Project%20Summary.pdf) |
 
-Editable sources are in [source/](source/) (Word documents and the product backlog) and [test-reports/](test-reports/README.md) (test reports in Markdown with the raw evidence). The test reports are regenerated with `python tools/generate_test_reports.py` and the sprint report with `python tools/generate_sprint_report.py`.
+Editable sources are in [source/](source/) (Word documents and the product backlog) and [test-reports/](test-reports/README.md) (test reports in Markdown with the raw evidence). Regenerate with `python tools/build_specification.py` (report 1), `python tools/generate_test_reports.py` (test reports) and `python tools/generate_sprint_report.py` (sprint report).
