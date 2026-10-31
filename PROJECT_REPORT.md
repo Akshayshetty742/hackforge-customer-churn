@@ -97,7 +97,7 @@ This section records the software engineering process evidence: the GitHub Proje
 
 ### 7.1 GitHub Backlog and SRS Traceability
 
-The backlog was created as GitHub issues from the requirements in the SRS, each with acceptance criteria, an SRS reference, story points, a sprint and an assignee. All Sprint 1 and Sprint 2 issues are closed with every acceptance criterion checked. The mapping of each issue to the detailed requirement IDs of SRS v1.1 and to its test cases is in [docs/reports/Product_Backlog.md](docs/reports/Product_Backlog.md).
+The backlog was created as GitHub issues from the requirements in the SRS, each with acceptance criteria, an SRS reference, story points, a sprint and an assignee. All Sprint 1 and Sprint 2 issues are closed with every acceptance criterion checked. The mapping of each issue to the detailed requirement IDs of SRS v1.1 and to its test cases is in [docs/reports/source/Product_Backlog.md](docs/reports/source/Product_Backlog.md).
 
 ### 7.2 Story Points and Sprint Configuration
 
@@ -215,7 +215,7 @@ Each change is listed with its reason and benefit in [docs/DEVIATIONS_AND_ENHANC
 | Part 2 requirement | Status |
 |---|---|
 | Project created and linked to the repository | Done: GitHub Projects board |
-| Backlog created from the SRS FRs and NFRs | Done: 11 issues for Sprints 1 and 2, traced in `docs/reports/Product_Backlog.md` |
+| Backlog created from the SRS FRs and NFRs | Done: 11 issues for Sprints 1 and 2, traced in `docs/reports/source/Product_Backlog.md` |
 | Story points assigned | Done: 49 points across Sprints 1 and 2 |
 | Stories assigned to team members | Done |
 | Two sprints planned and completed | Done |

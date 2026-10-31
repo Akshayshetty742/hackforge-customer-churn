@@ -308,7 +308,7 @@ hackforge-customer-churn/
 | [SAD v1.1](docs/SAD_v1.1_Addendum.md) | Architecture, component and sequence diagrams, API design |
 | [Test Plan v1.1](docs/TEST_PLAN_v1.1.md) | 26 test cases with status and traceability |
 | [Reports](docs/reports/README.md) | All submission reports in one folder |
-| [Product Backlog](docs/reports/Product_Backlog.md) | Backlog items with story points, mapped to requirements and test cases |
+| [Product Backlog](docs/reports/source/Product_Backlog.md) | Backlog items with story points, mapped to requirements and test cases |
 | [Deviations and Enhancements](docs/DEVIATIONS_AND_ENHANCEMENTS.md) | Changes from the submitted documents |
 | [Test Reports](docs/reports/test-reports/README.md) | Unit test, system validation, code coverage and branch coverage reports |
 | [Developer Guide](DEVELOPER_GUIDE.md) | Design decisions and code walkthrough |

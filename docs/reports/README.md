@@ -2,17 +2,15 @@
 
 Customer Churn Prediction Model, Team Hackforge, Software Engineering Mini Project.
 
-| No. | Report | File |
+| No. | Report | PDF |
 |---|---|---|
-| 1 | Software Requirements Specification, Software Test Plan and Software Architecture and Design | [SRS_STP_SAD_Report.docx](SRS_STP_SAD_Report.docx), [PDF](SRS_STP_SAD_Report.pdf) |
-| 2 | Product Backlog | [Product_Backlog.md](Product_Backlog.md) |
-| 3 | Sprint Report (velocity, burndown, burn-up and retrospectives) | [Sprint_Report.docx](Sprint_Report.docx) |
-| 4 | System Test Report | [test-reports/SYSTEM_VALIDATION_REPORT.md](test-reports/SYSTEM_VALIDATION_REPORT.md) |
-| 5 | Unit Test Report | [test-reports/UNIT_TEST_REPORT.md](test-reports/UNIT_TEST_REPORT.md) |
-| 6 | Code Coverage Report | [test-reports/CODE_COVERAGE_REPORT.md](test-reports/CODE_COVERAGE_REPORT.md) |
-| 7 | Branch Coverage Report | [test-reports/BRANCH_COVERAGE_REPORT.md](test-reports/BRANCH_COVERAGE_REPORT.md) |
-| 8 | Project Summary (problem statement to sprints) | [Project_Summary.pdf](Project_Summary.pdf) |
+| 1 | Software Requirements Specification, Software Test Plan and Software Architecture and Design | [1. SRS STP SAD Report.pdf](1.%20SRS%20STP%20SAD%20Report.pdf) |
+| 2 | Product Backlog | [2. Product Backlog.pdf](2.%20Product%20Backlog.pdf) |
+| 3 | Sprint Report (velocity, burndown, burn-up and retrospectives) | [3. Sprint Report.pdf](3.%20Sprint%20Report.pdf) |
+| 4 | System Test Report | [4. System Test Report.pdf](4.%20System%20Test%20Report.pdf) |
+| 5 | Unit Test Report | [5. Unit Test Report.pdf](5.%20Unit%20Test%20Report.pdf) |
+| 6 | Code Coverage Report | [6. Code Coverage Report.pdf](6.%20Code%20Coverage%20Report.pdf) |
+| 7 | Branch Coverage Report | [7. Branch Coverage Report.pdf](7.%20Branch%20Coverage%20Report.pdf) |
+| 8 | Project Summary (problem statement to sprints) | [8. Project Summary.pdf](8.%20Project%20Summary.pdf) |
 
-The v1.1 updates to the requirements, design and test plan are in [../SRS_v1.1_Addendum.md](../SRS_v1.1_Addendum.md), [../SAD_v1.1_Addendum.md](../SAD_v1.1_Addendum.md) and [../TEST_PLAN_v1.1.md](../TEST_PLAN_v1.1.md).
-
-The test reports are regenerated with `python tools/generate_test_reports.py` and the sprint report with `python tools/generate_sprint_report.py`.
+Editable sources are in [source/](source/) (Word documents and the product backlog) and [test-reports/](test-reports/README.md) (test reports in Markdown with the raw evidence). The test reports are regenerated with `python tools/generate_test_reports.py` and the sprint report with `python tools/generate_sprint_report.py`.
